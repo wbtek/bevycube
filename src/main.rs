@@ -45,12 +45,11 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    // Cube with logo on all sides, outside
-    commands.spawn((
+    // 1. Spawn the Outer Cube
+    let outer_entity = commands.spawn((
         Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(2.0)))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
-            // This ensures the transparent parts of your logo show the background
             alpha_mode: AlphaMode::Mask(0.5), 
             ..default()
         })),
@@ -58,22 +57,23 @@ fn setup(
         RotatingCubeOut,
     ))
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
-        // drag.delta is the mouse movement during the drag
         settings.rotation_speed += drag.delta.x * 0.005;
-    });
-    // Cube with logo on all sides, inside
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(1.99)))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
-            // This ensures the transparent parts of your logo show the background
-            alpha_mode: AlphaMode::Mask(0.5), 
-            cull_mode: Some(bevy::render::render_resource::Face::Front),
-            ..default()
-        })),
-        Transform::from_xyz(0.0, 1.01, 0.0),
-        RotatingCubeIn,
-    ));
+    })
+    // 2. Attach the Inner Cube as a child
+    .with_children(|parent| {
+        parent.spawn((
+            Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(1.99)))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
+                alpha_mode: AlphaMode::Mask(0.5), 
+                cull_mode: Some(bevy::render::render_resource::Face::Front), // See inside
+                ..default()
+            })),
+            // We don't need RotatingCubeIn or a special transform anymore.
+            // It will sit at (0,0,0) relative to the parent by default.
+        ));
+    })
+    .id();
     // Circular Ground Plane with Logo
     commands.spawn((
         Mesh3d(meshes.add(Circle::new(4.0))),

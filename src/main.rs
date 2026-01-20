@@ -3,6 +3,10 @@ use bevy::asset::AssetMetaCheck;
 
 #[derive(Component)]
 struct RotatingCube;
+
+#[derive(Component)]
+struct RotatingPlane;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(AssetPlugin {
@@ -11,7 +15,7 @@ fn main() {
             ..default()
         }))
         .add_systems(Startup, setup)
-        .add_systems(Update, rotate_cube)
+        .add_systems(Update, (rotate_cube, rotate_plane))
         .run();
 }
 
@@ -38,6 +42,7 @@ fn setup(
             ..default()
         })),
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        RotatingPlane,
     ));
     // Light: Up and to the side, with shadows on
     commands.spawn((
@@ -59,3 +64,11 @@ fn rotate_cube(mut query: Query<&mut Transform, With<RotatingCube>>, time: Res<T
         transform.rotate_y(1.0 * time.delta_secs());
     }
 }
+
+fn rotate_plane(mut query: Query<&mut Transform, With<RotatingPlane>>, time: Res<Time>) {
+    for mut transform in &mut query {
+        // Rotate the logo slowly
+        transform.rotate_local_z(0.2 * time.delta_secs());
+    }
+}
+

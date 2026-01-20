@@ -34,7 +34,8 @@ fn main() {
         }))
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_cube_out, rotate_cube_in, rotate_plane, position_cube_out, position_cube_in))
+//        .add_systems(Update, (rotate_plane, position_cube_out, position_cube_in))
+        .add_systems(Update, (rotate_plane, rotate_cube_out, rotate_cube_in, position_cube_in))
         .run();
 }
 
@@ -89,10 +90,28 @@ fn setup(
         // drag.delta is the mouse movement during the drag
         settings.rotation_speed += drag.delta.x * 0.001;
     })
-    .observe(|event: On<Pointer<Click>>, mut params: ResMut<CubeParms>| {
+    .observe(|event: On<Pointer<Click>>, mut commands: Commands, cube_query: Query<Entity, With<RotatingCubeOut>>| {
         if event.duration.as_secs_f32() < 0.2 {
-            if let Some(pos) = event.hit.position {
-                params.world_click = pos;
+            if let Some(hit_pos) = event.hit.position {
+                if let Some(cube_entity) = cube_query.iter().next() {
+                    let disk_entity = event.event_target();
+
+                    commands.entity(cube_entity).set_parent_in_place(disk_entity);
+
+                    // CORRECTED SWIZZLE:
+                    // World X -> Local X
+                    // World Z -> Local -Y
+                    // World Y -> Local -Z
+                    let local_translation = Vec3::new(hit_pos.x, -hit_pos.z, -hit_pos.y);
+
+                    commands.entity(cube_entity).insert(Transform {
+                        // Sit 1.0 units "above" the disk surface (which is local Z)
+                        translation: local_translation + Vec3::new(0.0, 0.0, 1.0),
+                        // Counteract the disk's tilt to stand upright
+                        rotation: Quat::from_rotation_x(std::f32::consts::FRAC_PI_2),
+                        ..default()
+                    });
+                }
             }
         }
     });

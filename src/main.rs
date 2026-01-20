@@ -24,17 +24,29 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    // Cube with logo on all sides
+    // Cube with logo on all sides, outside
     commands.spawn((
-        Mesh3d(meshes.add(Cuboid::default())),
+        Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(2.0)))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
             // This ensures the transparent parts of your logo show the background
             alpha_mode: AlphaMode::Mask(0.5), 
-            cull_mode: None,
             ..default()
         })),
-        Transform::from_xyz(0.0, 0.51, 0.0),
+        Transform::from_xyz(0.0, 1.00, 0.0),
+        RotatingCube,
+    ));
+    // Cube with logo on all sides, inside
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(1.99)))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
+            // This ensures the transparent parts of your logo show the background
+            alpha_mode: AlphaMode::Mask(0.5), 
+            cull_mode: Some(bevy::render::render_resource::Face::Front),
+            ..default()
+        })),
+        Transform::from_xyz(0.0, 1.01, 0.0),
         RotatingCube,
     ));
     // Circular Ground Plane with Logo

@@ -2,7 +2,10 @@ use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
 
 #[derive(Component)]
-struct RotatingCube;
+struct RotatingCubeOut;
+
+#[derive(Component)]
+struct RotatingCubeIn;
 
 #[derive(Component)]
 struct RotatingPlane;
@@ -15,19 +18,23 @@ struct PlaneParms {
 #[derive(Resource)]
 struct CubeParms {
     rotation_speed: f32,
+    world_click: Vec3,
 }
 
 fn main() {
     App::new()
         .insert_resource(PlaneParms { rotation_speed: 0.2 })
-        .insert_resource(CubeParms { rotation_speed: -1.0 })
+        .insert_resource(CubeParms {
+            rotation_speed: -1.0,
+            world_click: Vec3::ZERO
+        })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             meta_check: AssetMetaCheck::Never,
             ..default()
         }))
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_cube, rotate_plane))
+        .add_systems(Update, (rotate_cube_out, rotate_cube_in, rotate_plane, position_cube_out, position_cube_in))
         .run();
 }
 
@@ -47,11 +54,11 @@ fn setup(
             ..default()
         })),
         Transform::from_xyz(0.0, 1.01, 0.0),
-        RotatingCube,
+        RotatingCubeOut,
     ))
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
         // drag.delta is the mouse movement during the drag
-        settings.rotation_speed += drag.delta.x * 0.001;
+        settings.rotation_speed += drag.delta.x * 0.005;
     });
     // Cube with logo on all sides, inside
     commands.spawn((
@@ -64,7 +71,7 @@ fn setup(
             ..default()
         })),
         Transform::from_xyz(0.0, 1.01, 0.0),
-        RotatingCube,
+        RotatingCubeIn,
     ));
     // Circular Ground Plane with Logo
     commands.spawn((
@@ -81,6 +88,13 @@ fn setup(
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<PlaneParms>| {
         // drag.delta is the mouse movement during the drag
         settings.rotation_speed += drag.delta.x * 0.001;
+    })
+    .observe(|event: On<Pointer<Click>>, mut params: ResMut<CubeParms>| {
+        if event.duration.as_secs_f32() < 0.2 {
+            if let Some(pos) = event.hit.position {
+                params.world_click = pos;
+            }
+        }
     });
     // Light: Up and to the side, with shadows on
     commands.spawn((
@@ -97,8 +111,38 @@ fn setup(
     ));
 }
 
-fn rotate_cube(
-    mut query: Query<&mut Transform, With<RotatingCube>>,
+fn position_cube_out(
+    mut cube_query: Query<&mut Transform, With<RotatingCubeOut>>,
+    params: Res<CubeParms>,
+) {
+    // Just get the cube and move it to the world click point
+    if let Some(mut cube_tx) = cube_query.iter_mut().next() {
+        cube_tx.translation = params.world_click + Vec3::new(0.0, 1.01, 0.0);
+    }
+}
+
+fn position_cube_in(
+    mut cube_query: Query<&mut Transform, With<RotatingCubeIn>>,
+    params: Res<CubeParms>,
+) {
+    // Just get the cube and move it to the world click point
+    if let Some(mut cube_tx) = cube_query.iter_mut().next() {
+        cube_tx.translation = params.world_click + Vec3::new(0.0, 1.01, 0.0);
+    }
+}
+
+fn rotate_cube_out(
+    mut query: Query<&mut Transform, With<RotatingCubeOut>>,
+    time: Res<Time>,
+    settings: Res<CubeParms>,
+) {
+    for mut transform in &mut query {
+        transform.rotate_y(settings.rotation_speed * time.delta_secs());
+    }
+}
+
+fn rotate_cube_in(
+    mut query: Query<&mut Transform, With<RotatingCubeIn>>,
     time: Res<Time>,
     settings: Res<CubeParms>,
 ) {

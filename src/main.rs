@@ -8,13 +8,19 @@ struct RotatingCube;
 struct RotatingPlane;
 
 #[derive(Resource)]
-struct RotationSettings {
-    speed: f32,
+struct PlaneParms {
+    rotation_speed: f32,
+}
+
+#[derive(Resource)]
+struct CubeParms {
+    rotation_speed: f32,
 }
 
 fn main() {
     App::new()
-        .insert_resource(RotationSettings { speed: 0.2 })
+        .insert_resource(PlaneParms { rotation_speed: 0.2 })
+        .insert_resource(CubeParms { rotation_speed: -1.0 })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             meta_check: AssetMetaCheck::Never,
             ..default()
@@ -42,7 +48,11 @@ fn setup(
         })),
         Transform::from_xyz(0.0, 1.01, 0.0),
         RotatingCube,
-    ));
+    ))
+    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
+        // drag.delta is the mouse movement during the drag
+        settings.rotation_speed += drag.delta.x * 0.001;
+    });
     // Cube with logo on all sides, inside
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(1.99)))),
@@ -68,9 +78,9 @@ fn setup(
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
         RotatingPlane,
     ))
-    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<RotationSettings>| {
+    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<PlaneParms>| {
         // drag.delta is the mouse movement during the drag
-        settings.speed += drag.delta.x * 0.001;
+        settings.rotation_speed += drag.delta.x * 0.001;
     });
     // Light: Up and to the side, with shadows on
     commands.spawn((
@@ -87,19 +97,23 @@ fn setup(
     ));
 }
 
-fn rotate_cube(mut query: Query<&mut Transform, With<RotatingCube>>, time: Res<Time>) {
+fn rotate_cube(
+    mut query: Query<&mut Transform, With<RotatingCube>>,
+    time: Res<Time>,
+    settings: Res<CubeParms>,
+) {
     for mut transform in &mut query {
-        transform.rotate_y(-1.0 * time.delta_secs());
+        transform.rotate_y(settings.rotation_speed * time.delta_secs());
     }
 }
 
 fn rotate_plane(
     mut query: Query<&mut Transform, With<RotatingPlane>>, 
     time: Res<Time>,
-    settings: Res<RotationSettings>,
+    settings: Res<PlaneParms>,
 ) {
     for mut transform in &mut query {
-        transform.rotate_local_z(settings.speed * time.delta_secs());
+        transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
     }
 }
 

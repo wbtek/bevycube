@@ -7,12 +7,19 @@ struct RotatingCube;
 #[derive(Component)]
 struct RotatingPlane;
 
+#[derive(Resource)]
+struct RotationSettings {
+    speed: f32,
+}
+
 fn main() {
     App::new()
+        .insert_resource(RotationSettings { speed: 0.2 })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             meta_check: AssetMetaCheck::Never,
             ..default()
         }))
+        .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (rotate_cube, rotate_plane))
         .run();
@@ -60,7 +67,11 @@ fn setup(
         })),
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
         RotatingPlane,
-    ));
+    ))
+    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<RotationSettings>| {
+        // drag.delta is the mouse movement during the drag
+        settings.speed += drag.delta.x * 0.001;
+    });
     // Light: Up and to the side, with shadows on
     commands.spawn((
         PointLight {
@@ -82,10 +93,13 @@ fn rotate_cube(mut query: Query<&mut Transform, With<RotatingCube>>, time: Res<T
     }
 }
 
-fn rotate_plane(mut query: Query<&mut Transform, With<RotatingPlane>>, time: Res<Time>) {
+fn rotate_plane(
+    mut query: Query<&mut Transform, With<RotatingPlane>>, 
+    time: Res<Time>,
+    settings: Res<RotationSettings>,
+) {
     for mut transform in &mut query {
-        // Rotate the logo slowly
-        transform.rotate_local_z(0.2 * time.delta_secs());
+        transform.rotate_local_z(settings.speed * time.delta_secs());
     }
 }
 

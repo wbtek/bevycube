@@ -33,7 +33,7 @@ fn setup(
             alpha_mode: AlphaMode::Mask(0.5), 
             ..default()
         })),
-        Transform::from_xyz(0.0, 1.00, 0.0),
+        Transform::from_xyz(0.0, 1.01, 0.0),
         RotatingCube,
     ));
     // Cube with logo on all sides, inside

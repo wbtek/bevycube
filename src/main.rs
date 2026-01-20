@@ -90,27 +90,36 @@ fn setup(
         // drag.delta is the mouse movement during the drag
         settings.rotation_speed += drag.delta.x * 0.001;
     })
-    .observe(|event: On<Pointer<Click>>, mut commands: Commands, cube_query: Query<Entity, With<RotatingCubeOut>>| {
+    .observe(|event: On<Pointer<Click>>, 
+              mut commands: Commands, 
+              cube_query: Query<Entity, With<RotatingCubeOut>>,
+              // We need to query the disk's transform to do the math
+              disk_query: Query<&GlobalTransform>| {
+        
         if event.duration.as_secs_f32() < 0.2 {
             if let Some(hit_pos) = event.hit.position {
                 if let Some(cube_entity) = cube_query.iter().next() {
                     let disk_entity = event.event_target();
 
-                    commands.entity(cube_entity).set_parent_in_place(disk_entity);
+                    // 1. Get the disk's current orientation in the world
+                    if let Ok(disk_global_transform) = disk_query.get(disk_entity) {
+                        
+                        // 2. Convert the World hit_pos into the Disk's Local Space
+                        // This math "un-rotates" the click point relative to the disk
+                        let local_hit = disk_global_transform.affine().inverse().transform_point3(hit_pos);
 
-                    // CORRECTED SWIZZLE:
-                    // World X -> Local X
-                    // World Z -> Local -Y
-                    // World Y -> Local -Z
-                    let local_translation = Vec3::new(hit_pos.x, -hit_pos.z, -hit_pos.y);
+                        // 3. Parent the cube
+                        commands.entity(cube_entity).set_parent_in_place(disk_entity);
 
-                    commands.entity(cube_entity).insert(Transform {
-                        // Sit 1.0 units "above" the disk surface (which is local Z)
-                        translation: local_translation + Vec3::new(0.0, 0.0, 1.0),
-                        // Counteract the disk's tilt to stand upright
-                        rotation: Quat::from_rotation_x(std::f32::consts::FRAC_PI_2),
-                        ..default()
-                    });
+                        // 4. Insert the corrected Local Transform
+                        commands.entity(cube_entity).insert(Transform {
+                            // Use the calculated local point + 1.0 "up" from the surface
+                            translation: local_hit + Vec3::new(0.0, 0.0, 1.0),
+                            // Counteract the disk's -90x tilt so cube stands upright
+                            rotation: Quat::from_rotation_x(std::f32::consts::FRAC_PI_2),
+                            ..default()
+                        });
+                    }
                 }
             }
         }

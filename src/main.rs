@@ -35,7 +35,7 @@ fn main() {
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
 //        .add_systems(Update, (rotate_plane, position_cube_out, position_cube_in))
-        .add_systems(Update, (rotate_plane, rotate_cube_out, rotate_cube_in, position_cube_in))
+        .add_systems(Update, (rotate_plane, rotate_cube_out))
         .run();
 }
 
@@ -160,12 +160,24 @@ fn position_cube_in(
 }
 
 fn rotate_cube_out(
-    mut query: Query<&mut Transform, With<RotatingCubeOut>>,
-    time: Res<Time>,
+    // We need the GlobalTransform to see how the parent is tilting the cube
+    mut query: Query<(&mut Transform, &GlobalTransform), With<RotatingCubeOut>>,
     settings: Res<CubeParms>,
+    time: Res<Time>,
 ) {
-    for mut transform in &mut query {
-        transform.rotate_y(settings.rotation_speed * time.delta_secs());
+    for (mut transform, global_transform) in &mut query {
+        // 1. Get the world's "Up" (Y) vector
+        let world_up = Vec3::Y;
+        
+        // 2. Map that world vector into the cube's local space
+        // This effectively asks: "Which way is 'World Up' from the cube's perspective?"
+        let local_up = global_transform.affine().inverse().transform_vector3(world_up);
+        
+        // 3. Rotate around that calculated local axis
+        transform.rotate_local_axis(
+            Dir3::new_unchecked(local_up.normalize()), 
+            settings.rotation_speed * time.delta_secs()
+        );
     }
 }
 

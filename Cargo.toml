@@ -3,5 +3,31 @@ name = "bevycube"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-bevy = "0.18"
+[dependencies.bevy]
+version = "0.18"
+default-features = false
+features = [
+    "bevy_pbr",
+    "bevy_winit",
+    "bevy_picking", 
+    "mesh_picking", 
+    "webgl2",       
+    "png",          
+    "tonemapping_luts",
+    "zstd_rust",
+]
+
+[profile.dev]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+

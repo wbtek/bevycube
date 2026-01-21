@@ -2,10 +2,7 @@ use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
 
 #[derive(Component)]
-struct RotatingCubeOut;
-
-#[derive(Component)]
-struct RotatingCubeIn;
+struct RotatingCube;
 
 #[derive(Component)]
 struct RotatingPlane;
@@ -18,24 +15,19 @@ struct PlaneParms {
 #[derive(Resource)]
 struct CubeParms {
     rotation_speed: f32,
-    world_click: Vec3,
 }
 
 fn main() {
     App::new()
         .insert_resource(PlaneParms { rotation_speed: 0.2 })
-        .insert_resource(CubeParms {
-            rotation_speed: -1.0,
-            world_click: Vec3::ZERO
-        })
+        .insert_resource(CubeParms { rotation_speed: -1.0 }) // Removed world_click
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             meta_check: AssetMetaCheck::Never,
             ..default()
         }))
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-//        .add_systems(Update, (rotate_plane, position_cube_out, position_cube_in))
-        .add_systems(Update, (rotate_plane, rotate_cube_out))
+        .add_systems(Update, (rotate_plane, rotate_cube_out)) // Simplified systems
         .run();
 }
 
@@ -45,8 +37,8 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    // 1. Spawn the Outer Cube
-    let outer_entity = commands.spawn((
+    // Spawn the Outer Cube
+    commands.spawn((
         Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(2.0)))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
@@ -54,12 +46,12 @@ fn setup(
             ..default()
         })),
         Transform::from_xyz(0.0, 1.01, 0.0),
-        RotatingCubeOut,
+        RotatingCube,
     ))
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
         settings.rotation_speed += drag.delta.x * 0.005;
     })
-    // 2. Attach the Inner Cube as a child
+    // Attach the Inner Cube as a child
     .with_children(|parent| {
         parent.spawn((
             Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(1.99)))),
@@ -69,11 +61,8 @@ fn setup(
                 cull_mode: Some(bevy::render::render_resource::Face::Front), // See inside
                 ..default()
             })),
-            // We don't need RotatingCubeIn or a special transform anymore.
-            // It will sit at (0,0,0) relative to the parent by default.
         ));
-    })
-    .id();
+    });
     // Circular Ground Plane with Logo
     commands.spawn((
         Mesh3d(meshes.add(Circle::new(4.0))),
@@ -92,7 +81,7 @@ fn setup(
     })
     .observe(|event: On<Pointer<Click>>, 
               mut commands: Commands, 
-              cube_query: Query<Entity, With<RotatingCubeOut>>,
+              cube_query: Query<Entity, With<RotatingCube>>,
               // We need to query the disk's transform to do the math
               disk_query: Query<&GlobalTransform>| {
         
@@ -101,17 +90,17 @@ fn setup(
                 if let Some(cube_entity) = cube_query.iter().next() {
                     let disk_entity = event.event_target();
 
-                    // 1. Get the disk's current orientation in the world
+                    // Get the disk's current orientation in the world
                     if let Ok(disk_global_transform) = disk_query.get(disk_entity) {
                         
-                        // 2. Convert the World hit_pos into the Disk's Local Space
+                        // Convert the World hit_pos into the Disk's Local Space
                         // This math "un-rotates" the click point relative to the disk
                         let local_hit = disk_global_transform.affine().inverse().transform_point3(hit_pos);
 
-                        // 3. Parent the cube
+                        // Parent the cube
                         commands.entity(cube_entity).set_parent_in_place(disk_entity);
 
-                        // 4. Insert the corrected Local Transform
+                        // Insert the corrected Local Transform
                         commands.entity(cube_entity).insert(Transform {
                             // Use the calculated local point + 1.0 "up" from the surface
                             translation: local_hit + Vec3::new(0.0, 0.0, 1.0),
@@ -139,54 +128,22 @@ fn setup(
     ));
 }
 
-fn position_cube_out(
-    mut cube_query: Query<&mut Transform, With<RotatingCubeOut>>,
-    params: Res<CubeParms>,
-) {
-    // Just get the cube and move it to the world click point
-    if let Some(mut cube_tx) = cube_query.iter_mut().next() {
-        cube_tx.translation = params.world_click + Vec3::new(0.0, 1.01, 0.0);
-    }
-}
-
-fn position_cube_in(
-    mut cube_query: Query<&mut Transform, With<RotatingCubeIn>>,
-    params: Res<CubeParms>,
-) {
-    // Just get the cube and move it to the world click point
-    if let Some(mut cube_tx) = cube_query.iter_mut().next() {
-        cube_tx.translation = params.world_click + Vec3::new(0.0, 1.01, 0.0);
-    }
-}
-
 fn rotate_cube_out(
-    mut query: Query<(&mut Transform, &GlobalTransform), With<RotatingCubeOut>>,
+    mut query: Query<(&mut Transform, &GlobalTransform), With<RotatingCube>>,
     settings: Res<CubeParms>,
-    time: Res<Time>, // This is the Bevy clock
+    time: Res<Time>,
 ) {
-    // 1. Get the time elapsed since the last update
     let seconds_passed = time.delta_secs();
 
     for (mut transform, global_transform) in &mut query {
         let world_up = Vec3::Y;
+        // Correctly maps the world vertical axis to the cube's local space
         let local_up = global_transform.affine().inverse().transform_vector3(world_up);
         
-        // 2. Scale the rotation by seconds_passed
-        // This makes the RPM independent of the frame rate or distance
         transform.rotate_local_axis(
             Dir3::new_unchecked(local_up.normalize()), 
             settings.rotation_speed * seconds_passed
         );
-    }
-}
-
-fn rotate_cube_in(
-    mut query: Query<&mut Transform, With<RotatingCubeIn>>,
-    time: Res<Time>,
-    settings: Res<CubeParms>,
-) {
-    for mut transform in &mut query {
-        transform.rotate_y(settings.rotation_speed * time.delta_secs());
     }
 }
 
@@ -196,6 +153,7 @@ fn rotate_plane(
     settings: Res<PlaneParms>,
 ) {
     for mut transform in &mut query {
+        // Uses delta_secs to maintain constant rotation speed
         transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
     }
 }

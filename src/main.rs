@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
+use bevy::math::Affine2;
 
 #[derive(Component)]
 struct RotatingCube;
@@ -41,7 +42,7 @@ fn setup(
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(2.0)))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
+            base_color_texture: Some(asset_server.load("WhiteBearCrabRoundWC.png")),
             alpha_mode: AlphaMode::Mask(0.5), 
             ..default()
         })),
@@ -56,7 +57,7 @@ fn setup(
         parent.spawn((
             Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(1.99)))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
+                base_color_texture: Some(asset_server.load("WhiteBearCrabRoundWC.png")),
                 alpha_mode: AlphaMode::Mask(0.5), 
                 cull_mode: Some(bevy::render::render_resource::Face::Front), // See inside
                 ..default()
@@ -67,8 +68,12 @@ fn setup(
     commands.spawn((
         Mesh3d(meshes.add(Circle::new(4.0))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
+            base_color_texture: Some(asset_server.load("WhiteBearCrabRoundWC.png")),
             alpha_mode: AlphaMode::Blend, // Enables transparency
+            uv_transform: Affine2::from_translation(Vec2::new(0.0045, 0.004)) // left, up
+                * Affine2::from_translation(Vec2::splat(0.5))
+                * Affine2::from_scale(Vec2::splat(0.91))
+                * Affine2::from_translation(Vec2::splat(-0.5)),
             unlit: false, // Optional: makes logo bright regardless of lighting
             ..default()
         })),

@@ -106,29 +106,31 @@ fn setup(
     })
     .observe(|event: On<Pointer<Click>>, 
               mut commands: Commands, 
-              // We need this to find the cube's current local position
-              cube_query: Query<(Entity, &Transform), With<RotatingCube>>,
+              cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>,
               disk_query: Query<&GlobalTransform>| {
         
         if event.duration.as_secs_f32() < 0.2 {
             if let Some(hit_pos) = event.hit.position {
-                // Get the first cube found
-                if let Ok((cube_entity, cube_transform)) = cube_query.single() {
+                if let Ok((cube_entity, cube_global)) = cube_query.single() {
                     let disk_entity = event.event_target();
 
-                    if let Ok(disk_global_transform) = disk_query.get(disk_entity) {
-                        let local_hit = disk_global_transform.affine().inverse().transform_point3(hit_pos);
+                    if let Ok(disk_global) = disk_query.get(disk_entity) {
+                        // 1. Convert the Cube's current WORLD position to the DISK'S LOCAL space
+                        let start_local = disk_global.affine().inverse().transform_point3(cube_global.translation());
+                        
+                        // 2. Convert the CLICK (hit_pos) to the DISK'S LOCAL space
+                        let end_local = disk_global.affine().inverse().transform_point3(hit_pos);
 
-                        // Ensure cube is parented to the disk
+                        // 3. Parent the cube (maintains world position)
                         commands.entity(cube_entity).set_parent_in_place(disk_entity);
 
-                        // Start the move!
+                        // 4. Start the move using the calculated local start
                         commands.entity(cube_entity).insert(JumpData {
-                            start: cube_transform.translation,
-                            // End point + 1.0 height to keep it on surface
-                            end: local_hit + Vec3::new(0.0, 0.0, 1.0), 
+                            start: start_local,
+                            // End point + 1.0 height to keep it on the surface
+                            end: end_local + Vec3::new(0.0, 0.0, 1.0), 
                             timer: 0.0,
-                            duration: 0.6, // Slightly faster slide
+                            duration: 0.6,
                         });
                     }
                 }

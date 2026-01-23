@@ -1,2 +1,16 @@
-/target
-/dist
+# Rust artifacts
+/target/
+
+# Trunk / Web artifacts
+/dist/
+
+# web output directory
+/web
+
+# Env / IDE
+.env
+.idea/
+.vscode/
+
+# Build logs
+*.log

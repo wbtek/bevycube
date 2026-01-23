@@ -18,6 +18,14 @@ struct CubeParms {
     rotation_speed: f32,
 }
 
+#[derive(Component)]
+struct JumpData {
+    start: Vec3,
+    end: Vec3,
+    timer: f32,       // Current progress in seconds
+    duration: f32,    // Total time the slide should take
+}
+
 fn main() {
     App::new()
         .insert_resource(PlaneParms { rotation_speed: 0.2 })
@@ -28,7 +36,7 @@ fn main() {
         }))
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_plane, rotate_cube_out)) // Simplified systems
+        .add_systems(Update, (rotate_plane, rotate_cube_out, update_jump)) // Simplified systems
         .run();
 }
 
@@ -98,32 +106,29 @@ fn setup(
     })
     .observe(|event: On<Pointer<Click>>, 
               mut commands: Commands, 
-              cube_query: Query<Entity, With<RotatingCube>>,
-              // We need to query the disk's transform to do the math
+              // We need this to find the cube's current local position
+              cube_query: Query<(Entity, &Transform), With<RotatingCube>>,
               disk_query: Query<&GlobalTransform>| {
         
         if event.duration.as_secs_f32() < 0.2 {
             if let Some(hit_pos) = event.hit.position {
-                if let Some(cube_entity) = cube_query.iter().next() {
+                // Get the first cube found
+                if let Ok((cube_entity, cube_transform)) = cube_query.single() {
                     let disk_entity = event.event_target();
 
-                    // Get the disk's current orientation in the world
                     if let Ok(disk_global_transform) = disk_query.get(disk_entity) {
-                        
-                        // Convert the World hit_pos into the Disk's Local Space
-                        // This math "un-rotates" the click point relative to the disk
                         let local_hit = disk_global_transform.affine().inverse().transform_point3(hit_pos);
 
-                        // Parent the cube
+                        // Ensure cube is parented to the disk
                         commands.entity(cube_entity).set_parent_in_place(disk_entity);
 
-                        // Insert the corrected Local Transform
-                        commands.entity(cube_entity).insert(Transform {
-                            // Use the calculated local point + 1.0 "up" from the surface
-                            translation: local_hit + Vec3::new(0.0, 0.0, 1.0),
-                            // Counteract the disk's -90x tilt so cube stands upright
-                            rotation: Quat::from_rotation_x(std::f32::consts::FRAC_PI_2),
-                            ..default()
+                        // Start the move!
+                        commands.entity(cube_entity).insert(JumpData {
+                            start: cube_transform.translation,
+                            // End point + 1.0 height to keep it on surface
+                            end: local_hit + Vec3::new(0.0, 0.0, 1.0), 
+                            timer: 0.0,
+                            duration: 0.6, // Slightly faster slide
                         });
                     }
                 }
@@ -172,6 +177,29 @@ fn rotate_plane(
     for mut transform in &mut query {
         // Uses delta_secs to maintain constant rotation speed
         transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
+    }
+}
+
+fn update_jump(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Transform, &mut JumpData)>,
+) {
+    for (entity, mut transform, mut data) in &mut query {
+        data.timer += time.delta_secs();
+        let t = (data.timer / data.duration).min(1.0);
+
+        // --- THE ACCEL/DECEL "SMOOTHSTEP" MATH ---
+        // This is a standard cubic easing: 3t^2 - 2t^3
+        let smooth_t = t * t * (3.0 - 2.0 * t);
+
+        // Apply the position
+        transform.translation = data.start.lerp(data.end, smooth_t);
+
+        // When finished, remove the component
+        if t >= 1.0 {
+            commands.entity(entity).remove::<JumpData>();
+        }
     }
 }
 

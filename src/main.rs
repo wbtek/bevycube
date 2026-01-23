@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
 use bevy::math::Affine2;
+use bevy::prelude::ops::abs;
 
 #[derive(Component)]
 struct RotatingCube;
@@ -191,21 +192,25 @@ fn update_jump(
         data.timer += time.delta_secs();
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
 
-        // 1. Ease-In-Ease-Out for the horizontal movement
+        // 1. Horizontal Movement (Ease-In-Ease-Out)
         let smooth_t = t * t * (3.0 - 2.0 * t);
         let current_pos = data.start.lerp(data.end, smooth_t);
 
-        // 2. The Arc Math (Vertical "Pop")
-        // This creates a curve that starts at 0, peaks at 1, and ends at 0
-        let jump_height = 2.0; // How high the leap is
+        // 2. Vertical Arc (The Jump)
+        let jump_height = 2.0;
         let arc_offset = 4.0 * t * (1.0 - t) * jump_height;
-
-        // 3. Apply position
-        // We add the arc_offset to the "Z" because of your disk's orientation
         transform.translation = current_pos + Vec3::new(0.0, 0.0, arc_offset);
 
         if t >= 1.0 {
+            // Reset scale perfectly on landing
+            transform.scale = Vec3::splat(1.0);
             commands.entity(entity).remove::<JumpData>();
+        } else {
+            let squash_factor = 0.5 + abs(0.5 - t); 
+
+            transform.scale.x = 1.0 + (1.0 - squash_factor) * 1.0;
+            transform.scale.y = squash_factor; // vertical
+            transform.scale.z = 1.0 + (1.0 - squash_factor) * 1.0;
         }
     }
 }

@@ -189,16 +189,21 @@ fn update_jump(
 ) {
     for (entity, mut transform, mut data) in &mut query {
         data.timer += time.delta_secs();
-        let t = (data.timer / data.duration).min(1.0);
+        let t = (data.timer / data.duration).clamp(0.0, 1.0);
 
-        // --- THE ACCEL/DECEL "SMOOTHSTEP" MATH ---
-        // This is a standard cubic easing: 3t^2 - 2t^3
+        // 1. Ease-In-Ease-Out for the horizontal movement
         let smooth_t = t * t * (3.0 - 2.0 * t);
+        let current_pos = data.start.lerp(data.end, smooth_t);
 
-        // Apply the position
-        transform.translation = data.start.lerp(data.end, smooth_t);
+        // 2. The Arc Math (Vertical "Pop")
+        // This creates a curve that starts at 0, peaks at 1, and ends at 0
+        let jump_height = 2.0; // How high the leap is
+        let arc_offset = 4.0 * t * (1.0 - t) * jump_height;
 
-        // When finished, remove the component
+        // 3. Apply position
+        // We add the arc_offset to the "Z" because of your disk's orientation
+        transform.translation = current_pos + Vec3::new(0.0, 0.0, arc_offset);
+
         if t >= 1.0 {
             commands.entity(entity).remove::<JumpData>();
         }

@@ -38,37 +38,49 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    // Spawn the Outer Cube
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(2.0)))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRoundWC.png")),
-            alpha_mode: AlphaMode::Mask(0.5), 
-            ..default()
-        })),
-        Transform::from_xyz(0.0, 1.01, 0.0),
+    // 1. The "Container" (Replaces the Cuboid mesh and SpatialBundle)
+    let cube_id = commands.spawn((
+        Transform::from_xyz(0.0, 1.0, 0.0), // The parent's position
         RotatingCube,
-    ))
+    )).id();
+
+    // 2. The 6-Circle Geometry
+    let face_data = [
+        (Vec3::new(0.0, 0.0, 0.99), Quat::IDENTITY),                             // Front
+        (Vec3::new(0.0, 0.0, -0.99), Quat::from_rotation_y(std::f32::consts::PI)), // Back
+        (Vec3::new(0.99, 0.0, 0.0), Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)), // Right
+        (Vec3::new(-0.99, 0.0, 0.0), Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)), // Left
+        (Vec3::new(0.0, 0.99, 0.0), Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)), // Top
+        (Vec3::new(0.0, -0.99, 0.0), Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)), // Bottom
+    ];
+
+    // 3. Populate the container
+    commands.entity(cube_id).with_children(|parent| {
+        for (offset, rotation) in face_data {
+            parent.spawn((
+                Mesh3d(meshes.add(Circle::new(0.99))),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
+                    alpha_mode: AlphaMode::Opaque, // No transparency needed = no crashes!
+                    uv_transform: Affine2::from_translation(Vec2::new(0.0045, 0.004))
+                        * Affine2::from_translation(Vec2::splat(0.5))
+                        * Affine2::from_scale(Vec2::splat(0.91))
+                        * Affine2::from_translation(Vec2::splat(-0.5)),
+                    cull_mode: None,
+                    ..default()
+                })),
+                Transform::from_translation(offset).with_rotation(rotation),
+            ));
+        }
+    })
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
         settings.rotation_speed += drag.delta.x * 0.005;
-    })
-    // Attach the Inner Cube as a child
-    .with_children(|parent| {
-        parent.spawn((
-            Mesh3d(meshes.add(Cuboid::from_size(Vec3::splat(1.99)))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color_texture: Some(asset_server.load("WhiteBearCrabRoundWC.png")),
-                alpha_mode: AlphaMode::Mask(0.5), 
-                cull_mode: Some(bevy::render::render_resource::Face::Front), // See inside
-                ..default()
-            })),
-        ));
     });
     // Circular Ground Plane with Logo
     commands.spawn((
         Mesh3d(meshes.add(Circle::new(4.0))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRoundWC.png")),
+            base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
             alpha_mode: AlphaMode::Blend, // Enables transparency
             uv_transform: Affine2::from_translation(Vec2::new(0.0045, 0.004)) // left, up
                 * Affine2::from_translation(Vec2::splat(0.5))

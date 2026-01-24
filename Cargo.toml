@@ -12,7 +12,9 @@ features = [
     "bevy_picking", 
     "mesh_picking", 
     "webgl2",       
-    "png",          
+#    "png",          
+#    "jpeg",          
+    "ktx2",
     "tonemapping_luts",
     "zstd_rust",
 ]

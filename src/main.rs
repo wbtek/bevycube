@@ -65,17 +65,39 @@ fn setup(
 
     // 3. Populate the container
     commands.entity(cube_id).with_children(|parent| {
+        parent.spawn((
+            Mesh3d(meshes.add(
+                Sphere::new(0.1)
+                    .mesh()
+                    // 32 sectors and 18 stacks is the standard "smooth" sphere
+                    // This returns a Mesh directly, not a Result.
+                    .uv(32, 18) 
+            )), 
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgba(0.75, 0.25, 1.0, 1.0), 
+                unlit: true,
+                ..default()
+            })),
+            PointLight {
+                intensity: 5_000.0, 
+                color: Color::srgba(0.75, 0.25, 1.0, 1.0),
+                range: 20.0,
+                shadows_enabled: true,
+                ..default()
+            },
+        ));
         for (offset, rotation) in face_data {
             parent.spawn((
-                Mesh3d(meshes.add(Circle::new(0.99))),
+                Mesh3d(meshes.add(Circle::new(0.90))),
                 MeshMaterial3d(materials.add(StandardMaterial {
-                    base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
-                    alpha_mode: AlphaMode::Opaque, // No transparency needed = no crashes!
-                    uv_transform: Affine2::from_translation(Vec2::new(0.0045, 0.004))
+                    base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
+                    alpha_mode: AlphaMode::Opaque, // No transparency needed
+                    uv_transform: Affine2::from_translation(Vec2::new(0.0000, 0.000))
                         * Affine2::from_translation(Vec2::splat(0.5))
-                        * Affine2::from_scale(Vec2::splat(0.91))
+                        * Affine2::from_scale(Vec2::splat(0.98))
                         * Affine2::from_translation(Vec2::splat(-0.5)),
                     cull_mode: None,
+                    double_sided: true,
                     ..default()
                 })),
                 Transform::from_translation(offset).with_rotation(rotation),
@@ -87,13 +109,13 @@ fn setup(
     });
     // Circular Ground Plane with Logo
     commands.spawn((
-        Mesh3d(meshes.add(Circle::new(4.0))),
+        Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRound.png")),
-            alpha_mode: AlphaMode::Blend, // Enables transparency
-            uv_transform: Affine2::from_translation(Vec2::new(0.0045, 0.004)) // left, up
+            base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
+            alpha_mode: AlphaMode::Opaque,
+            uv_transform: Affine2::from_translation(Vec2::new(0.0000, 0.000)) // left, up
                 * Affine2::from_translation(Vec2::splat(0.5))
-                * Affine2::from_scale(Vec2::splat(0.91))
+                * Affine2::from_scale(Vec2::splat(0.98))
                 * Affine2::from_translation(Vec2::splat(-0.5)),
             unlit: false, // Optional: makes logo bright regardless of lighting
             ..default()

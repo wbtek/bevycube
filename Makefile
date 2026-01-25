@@ -40,7 +40,7 @@ help:
 build:
 	trunk build
 
-release: clean
+release:
 	trunk build --release
 
 serve:

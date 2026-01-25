@@ -37,7 +37,7 @@ fn main() {
         }))
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_plane, rotate_cube_out, update_jump)) // Simplified systems
+        .add_systems(Update, (rotate_plane, rotate_cube, update_jump)) // Simplified systems
         .run();
 }
 
@@ -74,41 +74,55 @@ fn setup(
                     .uv(32, 18) 
             )), 
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgba(0.75, 0.25, 1.0, 1.0), 
+                base_color: Color::srgb(0.75, 0.25, 1.0), 
                 unlit: true,
                 ..default()
             })),
-            PointLight {
-                intensity: 5_000.0, 
-                color: Color::srgba(0.75, 0.25, 1.0, 1.0),
-                range: 20.0,
-                shadows_enabled: true,
-                ..default()
-            },
+            // PointLight was here but has problems on some phones.
+            // Gotta fake internal illumination by 2nd inner set of
+            // glowing internal faces below.
         ));
+
+        // How to make .ktx2 (currently these are 256x256):
+        // ktx create --format R8G8B8_SRGB --assign-tf srgb --zstd 20
+        // --generate-mipmap --mipmap-filter kaiser in.png out.ktx2
+
+        let outside_mat = materials.add(StandardMaterial {
+            base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
+            cull_mode: Some(bevy::render::render_resource::Face::Back), // Only shows outside
+            ..default()
+        });
+
+        let inside_mat = materials.add(StandardMaterial {
+            base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
+            // The "Internal Glow" - Adjust 0.02 to your liking for intensity
+            emissive: LinearRgba::from(Color::srgb(0.75, 0.25, 1.0)) * 0.03, 
+            cull_mode: Some(bevy::render::render_resource::Face::Back), // Flipped: shows inside!
+            ..default()
+        });
+
         for (offset, rotation) in face_data {
-            parent.spawn((
+            parent.spawn(( // outside
                 Mesh3d(meshes.add(Circle::new(0.90))),
-                MeshMaterial3d(materials.add(StandardMaterial {
-                    base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
-                    alpha_mode: AlphaMode::Opaque, // No transparency needed
-                    uv_transform: Affine2::from_translation(Vec2::new(0.0000, 0.000))
-                        * Affine2::from_translation(Vec2::splat(0.5))
-                        * Affine2::from_scale(Vec2::splat(0.98))
-                        * Affine2::from_translation(Vec2::splat(-0.5)),
-                    cull_mode: None,
-                    double_sided: true,
-                    ..default()
-                })),
+                MeshMaterial3d(outside_mat.clone()),
                 Transform::from_translation(offset).with_rotation(rotation),
+            ));
+
+            parent.spawn(( // inside is inset
+                Mesh3d(meshes.add(Circle::new(0.90))),
+                MeshMaterial3d(inside_mat.clone()),
+                Transform { // flip to face inward
+                    translation: offset * 0.99, // slight inset
+                    rotation: rotation * Quat::from_rotation_y(std::f32::consts::PI),
+                    scale: Vec3::splat(0.995), // slight shrink
+                },
             ));
         }
     })
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
         settings.rotation_speed += drag.delta.x * 0.005;
     });
-    // Circular Ground Plane with Logo
-    commands.spawn((
+    commands.spawn(( // big "record player" spinning logo on the ground
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
@@ -117,14 +131,13 @@ fn setup(
                 * Affine2::from_translation(Vec2::splat(0.5))
                 * Affine2::from_scale(Vec2::splat(0.98))
                 * Affine2::from_translation(Vec2::splat(-0.5)),
-            unlit: false, // Optional: makes logo bright regardless of lighting
             ..default()
         })),
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
         RotatingPlane,
     ))
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<PlaneParms>| {
-        // drag.delta is the mouse movement during the drag
+        // drag.delta is mouse movement during the drag
         settings.rotation_speed += drag.delta.x * 0.001;
     })
     .observe(|event: On<Pointer<Click>>, 
@@ -138,16 +151,16 @@ fn setup(
                     let disk_entity = event.event_target();
 
                     if let Ok(disk_global) = disk_query.get(disk_entity) {
-                        // 1. Convert the Cube's current WORLD position to the DISK'S LOCAL space
+                        // Convert the Cube's current WORLD position to the DISK'S LOCAL space
                         let start_local = disk_global.affine().inverse().transform_point3(cube_global.translation());
                         
-                        // 2. Convert the CLICK (hit_pos) to the DISK'S LOCAL space
+                        // Convert the CLICK (hit_pos) to the DISK'S LOCAL space
                         let end_local = disk_global.affine().inverse().transform_point3(hit_pos);
 
-                        // 3. Parent the cube (maintains world position)
+                        // Parent the cube (maintains world position)
                         commands.entity(cube_entity).set_parent_in_place(disk_entity);
 
-                        // 4. Start the move using the calculated local start
+                        // Start the move using the calculated local start
                         commands.entity(cube_entity).insert(JumpData {
                             start: start_local,
                             // End point + 1.0 height to keep it on the surface
@@ -160,7 +173,7 @@ fn setup(
             }
         }
     });
-    // Light: Up and to the side, with shadows on
+    // Light: Up and to side, shadows on
     commands.spawn((
         PointLight {
             shadows_enabled: true,
@@ -175,7 +188,7 @@ fn setup(
     ));
 }
 
-fn rotate_cube_out(
+fn rotate_cube(
     mut query: Query<(&mut Transform, &GlobalTransform), With<RotatingCube>>,
     settings: Res<CubeParms>,
     time: Res<Time>,
@@ -214,11 +227,11 @@ fn update_jump(
         data.timer += time.delta_secs();
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
 
-        // 1. Horizontal Movement (Ease-In-Ease-Out)
+        // Horizontal Movement (Ease-In-Ease-Out)
         let smooth_t = t * t * (3.0 - 2.0 * t);
         let current_pos = data.start.lerp(data.end, smooth_t);
 
-        // 2. Vertical Arc (The Jump)
+        // Vertical Arc (The Jump)
         let jump_height = 2.0;
         let arc_offset = 4.0 * t * (1.0 - t) * jump_height;
         transform.translation = current_pos + Vec3::new(0.0, 0.0, arc_offset);

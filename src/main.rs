@@ -227,26 +227,39 @@ fn update_jump(
         data.timer += time.delta_secs();
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
 
-        // Horizontal Movement (Ease-In-Ease-Out)
+        // 1. Calculate horizontal distance
+        // In your setup, the disk's "up" is Z, so horizontal is X and Y
+        let horizontal_distance = data.start.xy().distance(data.end.xy());
+
+        // 2. Horizontal Movement (Ease-In-Ease-Out)
         let smooth_t = t * t * (3.0 - 2.0 * t);
         let current_pos = data.start.lerp(data.end, smooth_t);
 
-        // Vertical Arc (The Jump)
-        let jump_height = 2.0;
-        let arc_offset = 4.0 * t * (1.0 - t) * jump_height;
+        // 3. Conditional Vertical Arc & Squash/Stretch
+        // If distance is less than 2.0, arc_offset remains 0.0
+        let mut arc_offset = 0.0;
+
+        if horizontal_distance >= 4.0 {
+            // Only apply jump height and squash if far enough
+            let jump_height = 2.0;
+            arc_offset = 4.0 * t * (1.0 - t) * jump_height;
+
+            // Apply Squash and Stretch
+            let squash_factor = 0.5 + abs(0.5 - t);
+            transform.scale.x = 1.0 + (1.0 - squash_factor) * 1.0;
+            transform.scale.y = squash_factor;
+            transform.scale.z = 1.0 + (1.0 - squash_factor) * 1.0;
+        } else {
+            // Reset scale for sliding
+            transform.scale = Vec3::splat(1.0);
+        }
+
+        // Apply final translation
         transform.translation = current_pos + Vec3::new(0.0, 0.0, arc_offset);
 
         if t >= 1.0 {
-            // Reset scale perfectly on landing
             transform.scale = Vec3::splat(1.0);
             commands.entity(entity).remove::<JumpData>();
-        } else {
-            let squash_factor = 0.5 + abs(0.5 - t); 
-
-            transform.scale.x = 1.0 + (1.0 - squash_factor) * 1.0;
-            transform.scale.y = squash_factor; // vertical
-            transform.scale.z = 1.0 + (1.0 - squash_factor) * 1.0;
         }
     }
 }
-

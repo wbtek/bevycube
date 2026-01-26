@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
 use bevy::math::Affine2;
-use bevy::prelude::ops::abs;
+// use bevy::prelude::ops::abs;
 
 #[derive(Component)]
 struct RotatingCube;
@@ -21,10 +21,11 @@ struct CubeParms {
 
 #[derive(Component)]
 struct JumpData {
-    start: Vec3,
-    end: Vec3,
-    timer: f32,       // Current progress in seconds
-    duration: f32,    // Total time the slide should take
+    world_start: Vec3,     // World-space launch point
+    local_target: Vec3,    // Disk-space target (the visual spot)
+    timer: f32,
+    duration: f32,
+    disk_entity: Entity,
 }
 
 fn main() {
@@ -71,10 +72,10 @@ fn setup(
                     .mesh()
                     // 32 sectors and 18 stacks is the standard "smooth" sphere
                     // This returns a Mesh directly, not a Result.
-                    .uv(32, 18) 
-            )), 
+                    .uv(32, 18)
+            )),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgb(0.75, 0.25, 1.0), 
+                base_color: Color::srgb(0.75, 0.25, 1.0),
                 unlit: true,
                 ..default()
             })),
@@ -96,7 +97,7 @@ fn setup(
         let inside_mat = materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
             // The "Internal Glow" - Adjust 0.02 to your liking for intensity
-            emissive: LinearRgba::from(Color::srgb(0.75, 0.25, 1.0)) * 0.03, 
+            emissive: LinearRgba::from(Color::srgb(0.75, 0.25, 1.0)) * 0.03,
             cull_mode: Some(bevy::render::render_resource::Face::Back), // Flipped: shows inside!
             ..default()
         });
@@ -140,35 +141,31 @@ fn setup(
         // drag.delta is mouse movement during the drag
         settings.rotation_speed += drag.delta.x * 0.001;
     })
-    .observe(|event: On<Pointer<Click>>, 
-              mut commands: Commands, 
+    .observe(|event: On<Pointer<Click>>,
+              mut commands: Commands,
               cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>,
-              disk_query: Query<&GlobalTransform>| {
-        
-        if event.duration.as_secs_f32() < 0.2 {
-            if let Some(hit_pos) = event.hit.position {
-                if let Ok((cube_entity, cube_global)) = cube_query.single() {
-                    let disk_entity = event.event_target();
+              disk_query: Query<&GlobalTransform, With<RotatingPlane>>| {
 
-                    if let Ok(disk_global) = disk_query.get(disk_entity) {
-                        // Convert the Cube's current WORLD position to the DISK'S LOCAL space
-                        let start_local = disk_global.affine().inverse().transform_point3(cube_global.translation());
-                        
-                        // Convert the CLICK (hit_pos) to the DISK'S LOCAL space
-                        let end_local = disk_global.affine().inverse().transform_point3(hit_pos);
+        if let Some(hit_pos) = event.hit.position {
+            if let Ok((cube_entity, cube_global)) = cube_query.single() {
+                let disk_entity = event.event_target();
+                if let Ok(disk_global) = disk_query.get(disk_entity) {
 
-                        // Parent the cube (maintains world position)
-                        commands.entity(cube_entity).set_parent_in_place(disk_entity);
+                    // Capture current world position
+                    let world_start = cube_global.translation();
+                    // Map world click to the local "spot" on the disk (Bear head, etc)
+                    let local_target = disk_global.affine().inverse().transform_point3(hit_pos);
 
-                        // Start the move using the calculated local start
-                        commands.entity(cube_entity).insert(JumpData {
-                            start: start_local,
-                            // End point + 1.0 height to keep it on the surface
-                            end: end_local + Vec3::new(0.0, 0.0, 1.0), 
-                            timer: 0.0,
-                            duration: 0.6,
-                        });
-                    }
+                    // NUCLEAR OPTION: Detach the cube from the disk immediately
+                    commands.entity(cube_entity).remove_parent_in_place();
+
+                    commands.entity(cube_entity).insert(JumpData {
+                        world_start,
+                        local_target,
+                        timer: 0.0,
+                        duration: 0.6,
+                        disk_entity,
+                    });
                 }
             }
         }
@@ -199,16 +196,16 @@ fn rotate_cube(
         let world_up = Vec3::Y;
         // Correctly maps the world vertical axis to the cube's local space
         let local_up = global_transform.affine().inverse().transform_vector3(world_up);
-        
+
         transform.rotate_local_axis(
-            Dir3::new_unchecked(local_up.normalize()), 
+            Dir3::new_unchecked(local_up.normalize()),
             settings.rotation_speed * seconds_passed
         );
     }
 }
 
 fn rotate_plane(
-    mut query: Query<&mut Transform, With<RotatingPlane>>, 
+    mut query: Query<&mut Transform, With<RotatingPlane>>,
     time: Res<Time>,
     settings: Res<PlaneParms>,
 ) {
@@ -221,45 +218,61 @@ fn rotate_plane(
 fn update_jump(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut Transform, &mut JumpData)>,
+    plane_params: Res<PlaneParms>,
+    disk_query: Query<&GlobalTransform, With<RotatingPlane>>,
+    mut cube_query: Query<(Entity, &mut Transform, &mut JumpData), With<RotatingCube>>,
 ) {
-    for (entity, mut transform, mut data) in &mut query {
+    for (cube_entity, mut transform, mut data) in &mut cube_query {
         data.timer += time.delta_secs();
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
+        let time_remaining = data.duration - data.timer;
 
-        // 1. Calculate horizontal distance
-        // In your setup, the disk's "up" is Z, so horizontal is X and Y
-        let horizontal_distance = data.start.xy().distance(data.end.xy());
+        let disk_global = disk_query.get(data.disk_entity).expect("Disk missing");
 
-        // 2. Horizontal Movement (Ease-In-Ease-Out)
+        // 1. Where is the target world position right now?
+        let current_target_world = disk_global.transform_point(data.local_target);
+
+        // 2. Predict destination (Rotation happens on the XZ plane)
+        let prediction_angle = plane_params.rotation_speed * time_remaining;
+        let prediction_rotation = Quat::from_rotation_y(prediction_angle); // Spin around Y
+        let disk_center = disk_global.translation();
+
+        let mut relative_vec = current_target_world - disk_center;
+        relative_vec.y = 0.0; // Treat Y as the height (keep vector on the floor)
+
+        let world_destination = disk_center + (prediction_rotation * relative_vec);
+
+        // 3. Distance Check (Using X and Z for horizontal distance)
+        let dist = Vec2::new(data.world_start.x, data.world_start.z)
+            .distance(Vec2::new(world_destination.x, world_destination.z));
+
         let smooth_t = t * t * (3.0 - 2.0 * t);
-        let current_pos = data.start.lerp(data.end, smooth_t);
 
-        // 3. Conditional Vertical Arc & Squash/Stretch
-        // If distance is less than 2.0, arc_offset remains 0.0
-        let mut arc_offset = 0.0;
+        // 4. Calculate the Arc (This is now the Y-offset)
+        let mut arc_height = 0.0;
+        if dist > 4.0 {
+            arc_height = 4.0 * t * (1.0 - t) * 2.0;
 
-        if horizontal_distance >= 4.0 {
-            // Only apply jump height and squash if far enough
-            let jump_height = 2.0;
-            arc_offset = 4.0 * t * (1.0 - t) * jump_height;
-
-            // Apply Squash and Stretch
-            let squash_factor = 0.5 + abs(0.5 - t);
-            transform.scale.x = 1.0 + (1.0 - squash_factor) * 1.0;
-            transform.scale.y = squash_factor;
-            transform.scale.z = 1.0 + (1.0 - squash_factor) * 1.0;
+            // Squash the Y-axis (Vertical)
+            let s = 0.5 + (0.5 - t).abs();
+            transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
         } else {
-            // Reset scale for sliding
             transform.scale = Vec3::splat(1.0);
         }
 
-        // Apply final translation
-        transform.translation = current_pos + Vec3::new(0.0, 0.0, arc_offset);
+        // 5. THE FINAL AXIS SWAP
+        // Horizontal path is X and Z
+        let x = data.world_start.x + (world_destination.x - data.world_start.x) * smooth_t;
+        let z = data.world_start.z + (world_destination.z - data.world_start.z) * smooth_t;
+
+        // Vertical path is Y
+        // 0.5 is the resting height on the floor
+        transform.translation = Vec3::new(x, 1.0 + arc_height, z);
 
         if t >= 1.0 {
             transform.scale = Vec3::splat(1.0);
-            commands.entity(entity).remove::<JumpData>();
+            commands.entity(cube_entity).set_parent_in_place(data.disk_entity);
+            commands.entity(cube_entity).remove::<JumpData>();
         }
     }
 }

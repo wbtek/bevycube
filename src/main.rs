@@ -218,47 +218,33 @@ fn rotate_plane(
 fn update_jump(
     mut commands: Commands,
     time: Res<Time>,
-    plane_params: Res<PlaneParms>,
     disk_query: Query<&GlobalTransform, With<RotatingPlane>>,
     mut cube_query: Query<(Entity, &mut Transform, &mut JumpData), With<RotatingCube>>,
 ) {
     for (cube_entity, mut transform, mut data) in &mut cube_query {
         data.timer += time.delta_secs();
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
-        let time_remaining = data.duration - data.timer;
-
         let disk_global = disk_query.get(data.disk_entity).expect("Disk missing");
 
-        // Get current local disk target's world coords
-        let current_target_world = disk_global.transform_point(data.local_target);
+        // 1. Convert world_start to disk-local space ONCE
+        let local_start = disk_global.affine().inverse().transform_point3(data.world_start);
 
-        // Predict where it will be (Rotation happens on the XZ plane)
-        let prediction_angle = plane_params.rotation_speed * time_remaining;
-        let prediction_rotation = Quat::from_rotation_y(prediction_angle); // Spin around Y
-        let disk_center = disk_global.translation();
+        // 2. Interpolate in local space (No prediction math needed!)
+        let smooth_t = t * t * (3.0 - 2.0 * t);
+        let mut local_pos = local_start.lerp(data.local_target, smooth_t);
 
-        let relative_vec = current_target_world - disk_center;
-        let world_destination = disk_center + (prediction_rotation * relative_vec);
-
-        // Distance Check (Using 3d, why not.)
-        let dist = data.world_start.distance(world_destination);
-
-        let smooth_t = t * t * (3.0 - 2.0 * t); // cooler motion
-
-        // Calculate the Arc (Y-offset)
-        let arc_height: f32;
-        if dist > 4.0 { // jump
-            arc_height = 4.0 * t * (1.0 - t) * 2.0; // 0 to 2 and back
-            let s = 0.5 + (0.5 - t).abs(); // squash vert, expand horiz
+        // 3. Add arc height to local z
+        let dist = local_start.distance(data.local_target);
+        if dist > 4.0 {
+            local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
+            let s = 0.5 + (0.5 - t).abs();
             transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
-        } else { // slide
-            arc_height = 0.0;
+        } else {
             transform.scale = Vec3::splat(1.0);
         }
 
-        // Place it
-        let xyz = data.world_start + (world_destination - data.world_start) * smooth_t;
-        transform.translation = xyz + Vec3::new(0.0, arc_height, 0.0);
+        // 4. Set world position by transforming the current local point
+        transform.translation = disk_global.transform_point(local_pos);
 
         if t >= 1.0 {
             transform.scale = Vec3::splat(1.0);
@@ -267,3 +253,4 @@ fn update_jump(
         }
     }
 }
+

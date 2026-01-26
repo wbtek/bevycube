@@ -31,14 +31,14 @@ struct JumpData {
 fn main() {
     App::new()
         .insert_resource(PlaneParms { rotation_speed: 0.2 })
-        .insert_resource(CubeParms { rotation_speed: -1.0 }) // Removed world_click
+        .insert_resource(CubeParms { rotation_speed: -1.0 })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             meta_check: AssetMetaCheck::Never,
             ..default()
         }))
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_plane, rotate_cube, update_jump)) // Simplified systems
+        .add_systems(Update, (rotate_plane, rotate_cube, update_jump))
         .run();
 }
 
@@ -153,10 +153,10 @@ fn setup(
 
                     // Capture current world position
                     let world_start = cube_global.translation();
-                    // Map world click to the local "spot" on the disk (Bear head, etc)
-                    let local_target = disk_global.affine().inverse().transform_point3(hit_pos);
+                    let mut local_target = disk_global.affine().inverse().transform_point3(hit_pos);
+                    local_target.z += 1.0; // cube is above ground by this far
 
-                    // NUCLEAR OPTION: Detach the cube from the disk immediately
+                    // Detach the cube from the disk immediately
                     commands.entity(cube_entity).remove_parent_in_place();
 
                     commands.entity(cube_entity).insert(JumpData {
@@ -229,45 +229,36 @@ fn update_jump(
 
         let disk_global = disk_query.get(data.disk_entity).expect("Disk missing");
 
-        // 1. Where is the target world position right now?
+        // Get current local disk target's world coords
         let current_target_world = disk_global.transform_point(data.local_target);
 
-        // 2. Predict destination (Rotation happens on the XZ plane)
+        // Predict where it will be (Rotation happens on the XZ plane)
         let prediction_angle = plane_params.rotation_speed * time_remaining;
         let prediction_rotation = Quat::from_rotation_y(prediction_angle); // Spin around Y
         let disk_center = disk_global.translation();
 
-        let mut relative_vec = current_target_world - disk_center;
-        relative_vec.y = 0.0; // Treat Y as the height (keep vector on the floor)
-
+        let relative_vec = current_target_world - disk_center;
         let world_destination = disk_center + (prediction_rotation * relative_vec);
 
-        // 3. Distance Check (Using X and Z for horizontal distance)
-        let dist = Vec2::new(data.world_start.x, data.world_start.z)
-            .distance(Vec2::new(world_destination.x, world_destination.z));
+        // Distance Check (Using 3d, why not.)
+        let dist = data.world_start.distance(world_destination);
 
-        let smooth_t = t * t * (3.0 - 2.0 * t);
+        let smooth_t = t * t * (3.0 - 2.0 * t); // cooler motion
 
-        // 4. Calculate the Arc (This is now the Y-offset)
-        let mut arc_height = 0.0;
-        if dist > 4.0 {
-            arc_height = 4.0 * t * (1.0 - t) * 2.0;
-
-            // Squash the Y-axis (Vertical)
-            let s = 0.5 + (0.5 - t).abs();
+        // Calculate the Arc (Y-offset)
+        let arc_height: f32;
+        if dist > 4.0 { // jump
+            arc_height = 4.0 * t * (1.0 - t) * 2.0; // 0 to 2 and back
+            let s = 0.5 + (0.5 - t).abs(); // squash vert, expand horiz
             transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
-        } else {
+        } else { // slide
+            arc_height = 0.0;
             transform.scale = Vec3::splat(1.0);
         }
 
-        // 5. THE FINAL AXIS SWAP
-        // Horizontal path is X and Z
-        let x = data.world_start.x + (world_destination.x - data.world_start.x) * smooth_t;
-        let z = data.world_start.z + (world_destination.z - data.world_start.z) * smooth_t;
-
-        // Vertical path is Y
-        // 0.5 is the resting height on the floor
-        transform.translation = Vec3::new(x, 1.0 + arc_height, z);
+        // Place it
+        let xyz = data.world_start + (world_destination - data.world_start) * smooth_t;
+        transform.translation = xyz + Vec3::new(0.0, arc_height, 0.0);
 
         if t >= 1.0 {
             transform.scale = Vec3::splat(1.0);

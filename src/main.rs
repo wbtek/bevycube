@@ -145,10 +145,12 @@ fn setup(
     .observe(|event: On<Pointer<Click>>,
               mut commands: Commands,
               cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>,
+              jump_check: Query<&JumpData>,
               disk_query: Query<&GlobalTransform, With<RotatingPlane>>| {
 
         if let Some(hit_pos) = event.hit.position {
             if let Ok((cube_entity, cube_global)) = cube_query.single() {
+                if jump_check.contains(cube_entity) { return; }
                 let disk_entity = event.event_target();
                 if let Ok(disk_global) = disk_query.get(disk_entity) {
                     let world_start = cube_global.translation();

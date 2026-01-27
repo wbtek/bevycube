@@ -14,13 +14,23 @@ struct RotatingCube;
 #[require(Transform, Visibility)]
 struct RotatingPlane;
 
+#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+enum AnimationType {
+    Jump,
+    Slide,
+    Spin,
+    Flip,
+}
+
 #[derive(Component)]
 struct JumpData {
     world_start: Vec3,
+    start_rotation: Quat,
     local_target: Vec3,
     timer: f32,
     duration: f32,
     disk_entity: Entity,
+    animation: Option<AnimationType>,
 }
 
 // --- Resources ---
@@ -156,15 +166,16 @@ fn setup(
                     let world_start = cube_global.translation();
                     let mut local_target = disk_global.affine().inverse().transform_point3(hit_pos);
                     local_target.z += 1.0;
-
                     commands.entity(cube_entity).remove_parent_in_place();
-
+                    let start_rotation = cube_global.compute_transform().rotation;
                     commands.entity(cube_entity).insert(JumpData {
                         world_start,
+                        start_rotation,
                         local_target,
                         timer: 0.0,
                         duration: 0.6,
                         disk_entity,
+                        animation: None,
                     });
                 }
             }
@@ -220,24 +231,61 @@ fn update_jump(
     mut cube_query: Query<(Entity, &mut Transform, &mut JumpData), With<RotatingCube>>,
 ) {
     for (cube_entity, mut transform, mut data) in &mut cube_query {
-        data.timer += time.delta_secs();
-        let t = (data.timer / data.duration).clamp(0.0, 1.0);
-
         let Ok(disk_global) = disk_query.get(data.disk_entity) else { continue };
 
+        // 1. Resolve Animation Type Once per Animation
         let local_start = disk_global.affine().inverse().transform_point3(data.world_start);
+        let dist = local_start.distance(data.local_target);
+
+        let anim_type = *data.animation.get_or_insert_with(|| {
+            if dist < 4.0 { AnimationType::Slide }
+            else if dist < 5.0 { AnimationType::Jump }
+            else if dist < 6.0 { AnimationType::Spin }
+            else { AnimationType::Flip }
+        });
+
+        // 2. Update Timer and Progress
+        data.timer += time.delta_secs();
+        let t = (data.timer / data.duration).clamp(0.0, 1.0);
         let smooth_t = t * t * (3.0 - 2.0 * t);
         let mut local_pos = local_start.lerp(data.local_target, smooth_t);
+        let distance_to_go = local_pos.distance(data.local_target);
 
-        let dist = local_start.distance(data.local_target);
-        if dist > 4.0 {
-            local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
-            let s = 0.5 + (0.5 - t).abs();
-            transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
-        } else {
-            transform.scale = Vec3::splat(1.0);
+        // 3. Match on resolved type
+        match anim_type {
+            AnimationType::Slide => {
+                transform.scale = Vec3::splat(1.0);
+                transform.rotation = data.start_rotation;
+            }
+            AnimationType::Jump => {
+                local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
+                let s = 0.5 + (0.5 - t).abs();
+                transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
+                transform.rotation = data.start_rotation;
+            }
+            AnimationType::Spin => {
+                // Height and squash/stretch same as jump
+                local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
+                let s = 0.5 + (0.5 - t).abs();
+                transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
+                let angle = 2.0 * std::f32::consts::PI * t;
+                transform.rotation = data.start_rotation * Quat::from_rotation_y(angle);
+            }
+            AnimationType::Flip => {
+                // Height and squash/stretch same as jump
+                local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
+                let s = 0.5 + (0.5 - t).abs();
+                transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
+                let angle = 2.0 * std::f32::consts::PI * t;
+                if distance_to_go > 0.5 { transform.rotation = data.start_rotation * Quat::from_rotation_x(angle); }
+                else {
+                    let (foo, _, _) = transform.rotation.to_euler(EulerRot::YXZ);
+                    transform.rotation = Quat::from_rotation_y(foo);
+                }
+            }
         }
 
+        // 4. Finalize Position
         transform.translation = disk_global.transform_point(local_pos);
 
         if t >= 1.0 {

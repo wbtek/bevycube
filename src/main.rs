@@ -1,13 +1,29 @@
 use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
 use bevy::math::Affine2;
-// use bevy::prelude::ops::abs;
 
-#[derive(Component)]
+// --- Components ---
+
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
+#[require(Transform, Visibility)]
 struct RotatingCube;
 
-#[derive(Component)]
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
+#[require(Transform, Visibility)]
 struct RotatingPlane;
+
+#[derive(Component)]
+struct JumpData {
+    world_start: Vec3,
+    local_target: Vec3,
+    timer: f32,
+    duration: f32,
+    disk_entity: Entity,
+}
+
+// --- Resources ---
 
 #[derive(Resource)]
 struct PlaneParms {
@@ -19,14 +35,7 @@ struct CubeParms {
     rotation_speed: f32,
 }
 
-#[derive(Component)]
-struct JumpData {
-    world_start: Vec3,     // World-space launch point
-    local_target: Vec3,    // Disk-space target (the visual spot)
-    timer: f32,
-    duration: f32,
-    disk_entity: Entity,
-}
+// --- Main ---
 
 fn main() {
     App::new()
@@ -48,32 +57,25 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    // 1. The "Container" (Replaces the Cuboid mesh and SpatialBundle)
+    // 1. The Cube
     let cube_id = commands.spawn((
-        Transform::from_xyz(0.0, 1.0, 0.0), // The parent's position
         RotatingCube,
+        Transform::from_xyz(0.0, 1.0, 0.0),
     )).id();
 
-    // 2. The 6-Circle Geometry
-    let face_data = [
-        (Vec3::new(0.0, 0.0, 0.99), Quat::IDENTITY),                             // Front
-        (Vec3::new(0.0, 0.0, -0.99), Quat::from_rotation_y(std::f32::consts::PI)), // Back
-        (Vec3::new(0.99, 0.0, 0.0), Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)), // Right
-        (Vec3::new(-0.99, 0.0, 0.0), Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)), // Left
-        (Vec3::new(0.0, 0.99, 0.0), Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)), // Top
-        (Vec3::new(0.0, -0.99, 0.0), Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)), // Bottom
+    let face_data = [ // front/back, right/left, top/bottom
+        (Vec3::new(0.0, 0.0, 0.99), Quat::IDENTITY),
+        (Vec3::new(0.0, 0.0, -0.99), Quat::from_rotation_y(std::f32::consts::PI)),
+        (Vec3::new(0.99, 0.0, 0.0), Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)),
+        (Vec3::new(-0.99, 0.0, 0.0), Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)),
+        (Vec3::new(0.0, 0.99, 0.0), Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        (Vec3::new(0.0, -0.99, 0.0), Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
     ];
 
-    // 3. Populate the container
     commands.entity(cube_id).with_children(|parent| {
+        // Core center sphere
         parent.spawn((
-            Mesh3d(meshes.add(
-                Sphere::new(0.1)
-                    .mesh()
-                    // 32 sectors and 18 stacks is the standard "smooth" sphere
-                    // This returns a Mesh directly, not a Result.
-                    .uv(32, 18)
-            )),
+            Mesh3d(meshes.add(Sphere::new(0.1).mesh().uv(32, 18))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.75, 0.25, 1.0),
                 unlit: true,
@@ -90,32 +92,31 @@ fn setup(
 
         let outside_mat = materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
-            cull_mode: Some(bevy::render::render_resource::Face::Back), // Only shows outside
+            cull_mode: Some(bevy::render::render_resource::Face::Back),
             ..default()
         });
 
         let inside_mat = materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
-            // The "Internal Glow" - Adjust 0.02 to your liking for intensity
             emissive: LinearRgba::from(Color::srgb(0.75, 0.25, 1.0)) * 0.03,
-            cull_mode: Some(bevy::render::render_resource::Face::Back), // Flipped: shows inside!
+            cull_mode: Some(bevy::render::render_resource::Face::Back),
             ..default()
         });
 
         for (offset, rotation) in face_data {
-            parent.spawn(( // outside
+            parent.spawn((
                 Mesh3d(meshes.add(Circle::new(0.90))),
                 MeshMaterial3d(outside_mat.clone()),
                 Transform::from_translation(offset).with_rotation(rotation),
             ));
 
-            parent.spawn(( // inside is inset
+            parent.spawn((
                 Mesh3d(meshes.add(Circle::new(0.90))),
                 MeshMaterial3d(inside_mat.clone()),
-                Transform { // flip to face inward
-                    translation: offset * 0.99, // slight inset
+                Transform {
+                    translation: offset * 0.99,
                     rotation: rotation * Quat::from_rotation_y(std::f32::consts::PI),
-                    scale: Vec3::splat(0.995), // slight shrink
+                    scale: Vec3::splat(0.995),
                 },
             ));
         }
@@ -123,22 +124,22 @@ fn setup(
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
         settings.rotation_speed += drag.delta.x * 0.005;
     });
-    commands.spawn(( // big "record player" spinning logo on the ground
+
+    // 2. The Ground Plane (Record Player)
+    commands.spawn((
+        RotatingPlane,
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
             alpha_mode: AlphaMode::Opaque,
-            uv_transform: Affine2::from_translation(Vec2::new(0.0000, 0.000)) // left, up
-                * Affine2::from_translation(Vec2::splat(0.5))
+            uv_transform: Affine2::from_translation(Vec2::splat(0.5))
                 * Affine2::from_scale(Vec2::splat(0.98))
                 * Affine2::from_translation(Vec2::splat(-0.5)),
             ..default()
         })),
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        RotatingPlane,
     ))
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<PlaneParms>| {
-        // drag.delta is mouse movement during the drag
         settings.rotation_speed += drag.delta.x * 0.001;
     })
     .observe(|event: On<Pointer<Click>>,
@@ -150,13 +151,10 @@ fn setup(
             if let Ok((cube_entity, cube_global)) = cube_query.single() {
                 let disk_entity = event.event_target();
                 if let Ok(disk_global) = disk_query.get(disk_entity) {
-
-                    // Capture current world position
                     let world_start = cube_global.translation();
                     let mut local_target = disk_global.affine().inverse().transform_point3(hit_pos);
-                    local_target.z += 1.0; // cube is above ground by this far
+                    local_target.z += 1.0;
 
-                    // Detach the cube from the disk immediately
                     commands.entity(cube_entity).remove_parent_in_place();
 
                     commands.entity(cube_entity).insert(JumpData {
@@ -170,7 +168,8 @@ fn setup(
             }
         }
     });
-    // Light: Up and to side, shadows on
+
+    // 3. Lighting & Camera
     commands.spawn((
         PointLight {
             shadows_enabled: true,
@@ -178,12 +177,14 @@ fn setup(
         },
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
-    // Camera
+
     commands.spawn((
         Camera3d::default(),
-        Transform::from_xyz(-2.0, 5.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y)
+        Transform::from_xyz(-2.0, 5.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }
+
+// --- Systems ---
 
 fn rotate_cube(
     mut query: Query<(&mut Transform, &GlobalTransform), With<RotatingCube>>,
@@ -191,12 +192,8 @@ fn rotate_cube(
     time: Res<Time>,
 ) {
     let seconds_passed = time.delta_secs();
-
     for (mut transform, global_transform) in &mut query {
-        let world_up = Vec3::Y;
-        // Correctly maps the world vertical axis to the cube's local space
-        let local_up = global_transform.affine().inverse().transform_vector3(world_up);
-
+        let local_up = global_transform.affine().inverse().transform_vector3(Vec3::Y);
         transform.rotate_local_axis(
             Dir3::new_unchecked(local_up.normalize()),
             settings.rotation_speed * seconds_passed
@@ -210,7 +207,6 @@ fn rotate_plane(
     settings: Res<PlaneParms>,
 ) {
     for mut transform in &mut query {
-        // Uses delta_secs to maintain constant rotation speed
         transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
     }
 }
@@ -224,16 +220,13 @@ fn update_jump(
     for (cube_entity, mut transform, mut data) in &mut cube_query {
         data.timer += time.delta_secs();
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
-        let disk_global = disk_query.get(data.disk_entity).expect("Disk missing");
 
-        // 1. Convert world_start to disk-local space ONCE
+        let Ok(disk_global) = disk_query.get(data.disk_entity) else { continue };
+
         let local_start = disk_global.affine().inverse().transform_point3(data.world_start);
-
-        // 2. Interpolate in local space (No prediction math needed!)
         let smooth_t = t * t * (3.0 - 2.0 * t);
         let mut local_pos = local_start.lerp(data.local_target, smooth_t);
 
-        // 3. Add arc height to local z
         let dist = local_start.distance(data.local_target);
         if dist > 4.0 {
             local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
@@ -243,7 +236,6 @@ fn update_jump(
             transform.scale = Vec3::splat(1.0);
         }
 
-        // 4. Set world position by transforming the current local point
         transform.translation = disk_global.transform_point(local_pos);
 
         if t >= 1.0 {
@@ -253,4 +245,3 @@ fn update_jump(
         }
     }
 }
-

@@ -67,7 +67,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    let roundel_handle = asset_server.load("WhiteBearCrabRealRound.jpg");
+    let roundel_handle = asset_server.load("WhiteBearCrabRealRound.ktx2");
     let roundel_mat = StandardMaterial {
         base_color_texture: Some(roundel_handle),
         alpha_mode: AlphaMode::Opaque,

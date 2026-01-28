@@ -15,8 +15,8 @@ features = [
     "mesh_picking",
     "webgl2",
 #    "png",
-    "jpeg",
-#    "ktx2",
+#    "jpeg",
+    "ktx2",
     "tonemapping_luts",
     "zstd_rust",
 ]

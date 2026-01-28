@@ -67,6 +67,17 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
+    let roundel_handle = asset_server.load("WhiteBearCrabRealRound.jpg");
+    let roundel_mat = StandardMaterial {
+        base_color_texture: Some(roundel_handle),
+        alpha_mode: AlphaMode::Opaque,
+        uv_transform: Affine2::from_translation(Vec2::splat(0.5))
+            * Affine2::from_scale(Vec2::splat(0.98))
+            * Affine2::from_translation(Vec2::splat(-0.5)),
+            cull_mode: Some(bevy::render::render_resource::Face::Back),
+        ..default()
+    };
+
     // 1. The Cube
     let cube_id = commands.spawn((
         RotatingCube,
@@ -100,29 +111,19 @@ fn setup(
         // ktx create --format R8G8B8_SRGB --assign-tf srgb --zstd 20
         // --generate-mipmap --mipmap-filter kaiser in.png out.ktx2
 
-        let outside_mat = materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
-            cull_mode: Some(bevy::render::render_resource::Face::Back),
-            ..default()
-        });
-
-        let inside_mat = materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
-            emissive: LinearRgba::from(Color::srgb(0.75, 0.25, 1.0)) * 0.03,
-            cull_mode: Some(bevy::render::render_resource::Face::Back),
-            ..default()
-        });
-
         for (offset, rotation) in face_data {
             parent.spawn((
                 Mesh3d(meshes.add(Circle::new(0.90))),
-                MeshMaterial3d(outside_mat.clone()),
+                MeshMaterial3d(materials.add(roundel_mat.clone())),
                 Transform::from_translation(offset).with_rotation(rotation),
             ));
 
             parent.spawn((
                 Mesh3d(meshes.add(Circle::new(0.90))),
-                MeshMaterial3d(inside_mat.clone()),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    emissive: LinearRgba::from(Color::srgb(0.75, 0.25, 1.0)) * 0.03,
+                    ..roundel_mat.clone()
+                })),
                 Transform {
                     translation: offset * 0.99,
                     rotation: rotation * Quat::from_rotation_y(std::f32::consts::PI),
@@ -139,14 +140,7 @@ fn setup(
     commands.spawn((
         RotatingPlane,
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color_texture: Some(asset_server.load("WhiteBearCrabRealRound.ktx2")),
-            alpha_mode: AlphaMode::Opaque,
-            uv_transform: Affine2::from_translation(Vec2::splat(0.5))
-                * Affine2::from_scale(Vec2::splat(0.98))
-                * Affine2::from_translation(Vec2::splat(-0.5)),
-            ..default()
-        })),
+        MeshMaterial3d(materials.add(roundel_mat.clone())),
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
     ))
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<PlaneParms>| {

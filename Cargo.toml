@@ -11,12 +11,12 @@ default-features = false
 features = [
     "bevy_pbr",
     "bevy_winit",
-    "bevy_picking", 
-    "mesh_picking", 
-    "webgl2",       
-#    "png",          
-#    "jpeg",          
-    "ktx2",
+    "bevy_picking",
+    "mesh_picking",
+    "webgl2",
+#    "png",
+    "jpeg",
+#    "ktx2",
     "tonemapping_luts",
     "zstd_rust",
 ]

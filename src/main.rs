@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
 use bevy::math::Affine2;
+use bevy::asset::embedded_asset;
 
 // --- Components ---
 
@@ -62,6 +63,12 @@ fn main() {
             meta_check: AssetMetaCheck::Never,
             ..default()
         }))
+        .add_plugins(|app: &mut App| {
+            embedded_asset!(app, "media/WhiteBearCrab512.jpg");
+            embedded_asset!(app, "media/WhiteBearCrab256.jpg");
+            embedded_asset!(app, "media/WhiteBearCrab128.jpg");
+            embedded_asset!(app, "media/WhiteBearCrab64.jpg");
+        })
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (rotate_plane, rotate_cube, update_jump, stitch_roundel_system))
@@ -75,7 +82,7 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
 
-    let roundel_handle = asset_server.load("WhiteBearCrabRealRound64.jpg"); // swapped later
+    let roundel_handle = asset_server.load("embedded://bevycube/media/WhiteBearCrab64.jpg"); // swapped later
     let roundel_mat = StandardMaterial {
         base_color_texture: Some(roundel_handle.clone()),
         alpha_mode: AlphaMode::Opaque,
@@ -87,10 +94,10 @@ fn setup(
     };
 
     let handles = [
-        asset_server.load("WhiteBearCrabRealRound512.jpg"),
-        asset_server.load("WhiteBearCrabRealRound256.jpg"),
-        asset_server.load("WhiteBearCrabRealRound128.jpg"),
-        asset_server.load("WhiteBearCrabRealRound64.jpg"),
+        asset_server.load("embedded://bevycube/media/WhiteBearCrab512.jpg"),
+        asset_server.load("embedded://bevycube/media/WhiteBearCrab256.jpg"),
+        asset_server.load("embedded://bevycube/media/WhiteBearCrab128.jpg"),
+        asset_server.load("embedded://bevycube/media/WhiteBearCrab64.jpg"),
     ];
     commands.insert_resource(RoundelMipmapLoading {
         handles,

@@ -4,6 +4,13 @@ use bevy::math::Affine2;
 
 // --- Components ---
 
+#[derive(Resource)]
+struct RoundelMipmapLoading {
+    // [512, 256, 128, 64]
+    handles: [Handle<Image>; 4],
+    target_handle: Handle<Image>,
+}
+
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 #[require(Transform, Visibility)]
@@ -57,7 +64,7 @@ fn main() {
         }))
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_plane, rotate_cube, update_jump))
+        .add_systems(Update, (rotate_plane, rotate_cube, update_jump, stitch_roundel_system))
         .run();
 }
 
@@ -67,9 +74,10 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    let roundel_handle = asset_server.load("WhiteBearCrabRealRound.ktx2");
+
+    let roundel_handle = asset_server.load("WhiteBearCrabRealRound64.jpg"); // swapped later
     let roundel_mat = StandardMaterial {
-        base_color_texture: Some(roundel_handle),
+        base_color_texture: Some(roundel_handle.clone()),
         alpha_mode: AlphaMode::Opaque,
         uv_transform: Affine2::from_translation(Vec2::splat(0.5))
             * Affine2::from_scale(Vec2::splat(0.98))
@@ -77,6 +85,17 @@ fn setup(
             cull_mode: Some(bevy::render::render_resource::Face::Back),
         ..default()
     };
+
+    let handles = [
+        asset_server.load("WhiteBearCrabRealRound512.jpg"),
+        asset_server.load("WhiteBearCrabRealRound256.jpg"),
+        asset_server.load("WhiteBearCrabRealRound128.jpg"),
+        asset_server.load("WhiteBearCrabRealRound64.jpg"),
+    ];
+    commands.insert_resource(RoundelMipmapLoading {
+        handles,
+        target_handle: roundel_handle.clone(),
+    });
 
     // 1. The Cube
     let cube_id = commands.spawn((
@@ -136,7 +155,7 @@ fn setup(
         settings.rotation_speed += drag.delta.x * 0.005;
     });
 
-    // 2. The Ground Plane (Record Player)
+    // 2. The Ground Plane (Turntable)
     commands.spawn((
         RotatingPlane,
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
@@ -192,6 +211,70 @@ fn setup(
 }
 
 // --- Systems ---
+
+fn stitch_roundel_system(
+    mut commands: Commands,
+    loading: Option<Res<RoundelMipmapLoading>>,
+    mut images: ResMut<Assets<Image>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let Some(loading) = loading else { return };
+
+    if loading.handles.iter().all(|h| images.get(h).is_some()) {
+        let mut combined_data = Vec::new();
+        
+        let first_img = images.get(&loading.handles[0]).unwrap();
+        let detected_format = first_img.texture_descriptor.format;
+
+        for handle in &loading.handles {
+            let img = images.get(handle).unwrap();
+            // 1. Unwrap the Option to get the actual bytes
+            if let Some(ref data) = img.data {
+                combined_data.extend_from_slice(data);
+            } else {
+                return; 
+            }
+        }
+
+        let stitched_image = Image {
+            // 2. Wrap the final Vec in Some()
+            data: Some(combined_data),
+            texture_descriptor: bevy::render::render_resource::TextureDescriptor {
+                label: Some("stitched_roundel"),
+                size: bevy::render::render_resource::Extent3d { 
+                    width: 512, 
+                    height: 512, 
+                    depth_or_array_layers: 1 
+                },
+                mip_level_count: 4,
+                sample_count: 1,
+                dimension: bevy::render::render_resource::TextureDimension::D2,
+                format: detected_format,
+                usage: bevy::render::render_resource::TextureUsages::TEXTURE_BINDING | bevy::render::render_resource::TextureUsages::COPY_DST,
+                view_formats: &[],
+            },
+            sampler: bevy::image::ImageSampler::Descriptor(bevy::image::ImageSamplerDescriptor {
+                mipmap_filter: bevy::image::ImageFilterMode::Linear,
+                mag_filter: bevy::image::ImageFilterMode::Linear,
+                min_filter: bevy::image::ImageFilterMode::Linear,
+                ..default()
+            }),
+            ..default()
+        };
+
+        let final_handle = images.add(stitched_image);
+
+        for (_, mat) in materials.iter_mut() {
+            if let Some(ref current_tex) = mat.base_color_texture {
+                if current_tex.id() == loading.target_handle.id() {
+                    mat.base_color_texture = Some(final_handle.clone());
+                }
+            }
+        }
+
+        commands.remove_resource::<RoundelMipmapLoading>();
+    }
+}
 
 fn rotate_cube(
     mut query: Query<(&mut Transform, &GlobalTransform), With<RotatingCube>>,

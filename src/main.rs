@@ -34,7 +34,7 @@ struct JumpData {
     local_target: Vec3,
     timer: f32,
     duration: f32,
-    disk_entity: Entity,
+    target_entity: Entity,
     animation: Option<AnimationType>,
 }
 
@@ -171,7 +171,7 @@ fn setup(
         settings.rotation_speed += drag.delta.x * 0.005;
     });
 
-    // 2. The Turntable
+    // 2a. The Turntable
     commands.spawn((
         RotatingDisk,
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
@@ -190,10 +190,10 @@ fn setup(
         if let Some(hit_pos) = event.hit.position {
             if let Ok((cube_entity, cube_global)) = cube_query.single() {
                 if jump_check.contains(cube_entity) { return; }
-                let disk_entity = event.event_target();
-                if let Ok(disk_global) = disk_query.get(disk_entity) {
+                let target_entity = event.event_target();
+                if let Ok(target_global) = disk_query.get(target_entity) {
                     let world_start = cube_global.translation();
-                    let mut local_target = disk_global.affine().inverse().transform_point3(hit_pos);
+                    let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
                     local_target.z += 1.0;
                     commands.entity(cube_entity).remove_parent_in_place();
                     let start_rotation = cube_global.compute_transform().rotation;
@@ -203,7 +203,7 @@ fn setup(
                         local_target,
                         timer: 0.0,
                         duration: 0.6,
-                        disk_entity,
+                        target_entity,
                         animation: None,
                     });
                 }
@@ -217,7 +217,33 @@ fn setup(
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
         Transform::from_xyz(0.0, -1.0, 0.0),
-    ));
+    ))
+    .observe(|event: On<Pointer<Click>>, mut commands: Commands, cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>, jump_check: Query<&JumpData>, ground_query: Query<&GlobalTransform, With<Ground>>| {
+        // Exact same logic as the Disk observer, but using the ground's transform!
+        if let Some(hit_pos) = event.hit.position {
+            if let Ok((cube_entity, cube_global)) = cube_query.single() {
+                if jump_check.contains(cube_entity) { return; }
+                let target_entity = event.event_target();
+                if let Ok(target_global) = ground_query.get(target_entity) {
+                    let world_start = cube_global.translation();
+                    let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
+                    // Adjust Z or Y depending on your coordinate preference
+                    local_target.y += 1.0; 
+                    commands.entity(cube_entity).remove_parent_in_place();
+                    let start_rotation = cube_global.compute_transform().rotation;
+                    commands.entity(cube_entity).insert(JumpData {
+                        world_start,
+                        start_rotation,
+                        local_target,
+                        timer: 0.0,
+                        duration: 0.8, // Maybe a bit slower for big ground jumps?
+                        target_entity,
+                        animation: None,
+                    });
+                }
+            }
+        }
+    });
 
     // 3. Lighting & Camera
     commands.spawn((
@@ -330,14 +356,14 @@ fn rotate_disk(
 fn update_jump(
     mut commands: Commands,
     time: Res<Time>,
-    disk_query: Query<&GlobalTransform, With<RotatingDisk>>,
+    target_query: Query<&GlobalTransform>,
     mut cube_query: Query<(Entity, &mut Transform, &mut JumpData), With<RotatingCube>>,
 ) {
     for (cube_entity, mut transform, mut data) in &mut cube_query {
-        let Ok(disk_global) = disk_query.get(data.disk_entity) else { continue };
+        let Ok(target_global) = target_query.get(data.target_entity) else { continue };
 
         // 1. Resolve Animation Type Once per Animation
-        let local_start = disk_global.affine().inverse().transform_point3(data.world_start);
+        let local_start = target_global.affine().inverse().transform_point3(data.world_start);
         let dist = local_start.distance(data.local_target);
 
         let anim_type = *data.animation.get_or_insert_with(|| {
@@ -352,13 +378,14 @@ fn update_jump(
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
         let elastic_t = ElasticInOut.sample_unchecked(t);
         let bounce_t = BounceInOut.sample_unchecked(t);
-        let bounce_height = 4. * (0.5 - (bounce_t - 0.5).abs());
+        let mut bounce_height = 4. * (0.5 - (bounce_t - 0.5).abs());
         let mut local_pos = local_start.lerp(data.local_target, elastic_t);
         let distance_to_go = local_pos.distance(data.local_target);
 
         // 3. Match on resolved type
         match anim_type {
             AnimationType::Slide => {
+                bounce_height = 0.;
                 transform.scale = Vec3::splat(1.0);
                 transform.rotation = data.start_rotation;
             }
@@ -390,12 +417,14 @@ fn update_jump(
             }
         }
 
-        // 4. Finalize Position
-        transform.translation = disk_global.transform_point(local_pos);
+        // 4. Finalize Position including which axis is up
+        let world_pos_horizontal = target_global.transform_point(local_start.lerp(data.local_target, elastic_t));
+        let final_world_pos = world_pos_horizontal + Vec3::new(0.0, bounce_height, 0.0);
+        transform.translation = final_world_pos;
 
         if t >= 1.0 {
             transform.scale = Vec3::splat(1.0);
-            commands.entity(cube_entity).set_parent_in_place(data.disk_entity);
+            commands.entity(cube_entity).set_parent_in_place(data.target_entity);
             commands.entity(cube_entity).remove::<JumpData>();
         }
     }

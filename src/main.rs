@@ -5,13 +5,6 @@ use bevy::asset::embedded_asset;
 
 // --- Components ---
 
-#[derive(Resource)]
-struct RoundelMipmapLoading {
-    // [512, 256, 128, 64, 32]
-    handles: [Handle<Image>; 5],
-    target_handle: Handle<Image>,
-}
-
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 #[require(Transform, Visibility)]
@@ -20,7 +13,10 @@ struct RotatingCube;
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 #[require(Transform, Visibility)]
-struct RotatingPlane;
+struct RotatingDisk;
+
+#[derive(Component)]
+struct Ground;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 enum AnimationType {
@@ -44,7 +40,14 @@ struct JumpData {
 // --- Resources ---
 
 #[derive(Resource)]
-struct PlaneParms {
+struct RoundelMipmapLoading {
+    // [512, 256, 128, 64, 32]
+    handles: [Handle<Image>; 5],
+    target_handle: Handle<Image>,
+}
+
+#[derive(Resource)]
+struct DiskParms {
     rotation_speed: f32,
 }
 
@@ -57,7 +60,7 @@ struct CubeParms {
 
 fn main() {
     App::new()
-        .insert_resource(PlaneParms { rotation_speed: 0.2 })
+        .insert_resource(DiskParms { rotation_speed: 0.2 })
         .insert_resource(CubeParms { rotation_speed: -1.0 })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             meta_check: AssetMetaCheck::Never,
@@ -72,7 +75,7 @@ fn main() {
         })
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_plane, rotate_cube, update_jump, stitch_roundel_system))
+        .add_systems(Update, (rotate_disk, rotate_cube, update_jump, stitch_roundel_system))
         .run();
 }
 
@@ -164,21 +167,21 @@ fn setup(
         settings.rotation_speed += drag.delta.x * 0.005;
     });
 
-    // 2. The Ground Plane (Turntable)
+    // 2. The Turntable
     commands.spawn((
-        RotatingPlane,
+        RotatingDisk,
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
         MeshMaterial3d(materials.add(roundel_mat.clone())),
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
     ))
-    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<PlaneParms>| {
+    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
         settings.rotation_speed += drag.delta.x * 0.001;
     })
     .observe(|event: On<Pointer<Click>>,
               mut commands: Commands,
               cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>,
               jump_check: Query<&JumpData>,
-              disk_query: Query<&GlobalTransform, With<RotatingPlane>>| {
+              disk_query: Query<&GlobalTransform, With<RotatingDisk>>| {
 
         if let Some(hit_pos) = event.hit.position {
             if let Ok((cube_entity, cube_global)) = cube_query.single() {
@@ -203,6 +206,14 @@ fn setup(
             }
         }
     });
+
+    // 2b. The Ground
+    commands.spawn((
+        Ground,
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
+        MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
+        Transform::from_xyz(0.0, -1.0, 0.0),
+    ));
 
     // 3. Lighting & Camera
     commands.spawn((
@@ -300,10 +311,10 @@ fn rotate_cube(
     }
 }
 
-fn rotate_plane(
-    mut query: Query<&mut Transform, With<RotatingPlane>>,
+fn rotate_disk(
+    mut query: Query<&mut Transform, With<RotatingDisk>>,
     time: Res<Time>,
-    settings: Res<PlaneParms>,
+    settings: Res<DiskParms>,
 ) {
     for mut transform in &mut query {
         transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
@@ -313,7 +324,7 @@ fn rotate_plane(
 fn update_jump(
     mut commands: Commands,
     time: Res<Time>,
-    disk_query: Query<&GlobalTransform, With<RotatingPlane>>,
+    disk_query: Query<&GlobalTransform, With<RotatingDisk>>,
     mut cube_query: Query<(Entity, &mut Transform, &mut JumpData), With<RotatingCube>>,
 ) {
     for (cube_entity, mut transform, mut data) in &mut cube_query {

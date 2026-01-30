@@ -259,6 +259,7 @@ fn stitch_roundel_system(
             }
         }
 
+        let mip_count = loading.handles.len() as u32;
         let stitched_image = Image {
             // 2. Wrap the final Vec in Some()
             data: Some(combined_data),
@@ -269,7 +270,7 @@ fn stitch_roundel_system(
                     height: 512, 
                     depth_or_array_layers: 1 
                 },
-                mip_level_count: 4,
+                mip_level_count: mip_count,
                 sample_count: 1,
                 dimension: bevy::render::render_resource::TextureDimension::D2,
                 format: detected_format,
@@ -280,6 +281,7 @@ fn stitch_roundel_system(
                 mipmap_filter: bevy::image::ImageFilterMode::Linear,
                 mag_filter: bevy::image::ImageFilterMode::Linear,
                 min_filter: bevy::image::ImageFilterMode::Linear,
+                anisotropy_clamp: 16,
                 ..default()
             }),
             ..default()

@@ -7,8 +7,8 @@ use bevy::asset::embedded_asset;
 
 #[derive(Resource)]
 struct RoundelMipmapLoading {
-    // [512, 256, 128, 64]
-    handles: [Handle<Image>; 4],
+    // [512, 256, 128, 64, 32]
+    handles: [Handle<Image>; 5],
     target_handle: Handle<Image>,
 }
 
@@ -68,6 +68,7 @@ fn main() {
             embedded_asset!(app, "media/WhiteBearCrab256.jpg");
             embedded_asset!(app, "media/WhiteBearCrab128.jpg");
             embedded_asset!(app, "media/WhiteBearCrab64.jpg");
+            embedded_asset!(app, "media/WhiteBearCrab32.jpg");
         })
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
@@ -98,6 +99,7 @@ fn setup(
         asset_server.load("embedded://bevycube/media/WhiteBearCrab256.jpg"),
         asset_server.load("embedded://bevycube/media/WhiteBearCrab128.jpg"),
         asset_server.load("embedded://bevycube/media/WhiteBearCrab64.jpg"),
+        asset_server.load("embedded://bevycube/media/WhiteBearCrab32.jpg"),
     ];
     commands.insert_resource(RoundelMipmapLoading {
         handles,
@@ -139,13 +141,13 @@ fn setup(
 
         for (offset, rotation) in face_data {
             parent.spawn((
-                Mesh3d(meshes.add(Circle::new(0.90))),
+                Mesh3d(meshes.add(Circle::new(0.90).mesh().resolution(128))),
                 MeshMaterial3d(materials.add(roundel_mat.clone())),
                 Transform::from_translation(offset).with_rotation(rotation),
             ));
 
             parent.spawn((
-                Mesh3d(meshes.add(Circle::new(0.90))),
+                Mesh3d(meshes.add(Circle::new(0.90).mesh().resolution(128))),
                 MeshMaterial3d(materials.add(StandardMaterial {
                     emissive: LinearRgba::from(Color::srgb(0.75, 0.25, 1.0)) * 0.03,
                     ..roundel_mat.clone()

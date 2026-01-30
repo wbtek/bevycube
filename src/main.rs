@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::prelude::EaseFunction::{ ElasticInOut, BounceInOut };
 use bevy::asset::AssetMetaCheck;
 use bevy::math::Affine2;
 use bevy::asset::embedded_asset;
@@ -349,8 +350,10 @@ fn update_jump(
         // 2. Update Timer and Progress
         data.timer += time.delta_secs();
         let t = (data.timer / data.duration).clamp(0.0, 1.0);
-        let smooth_t = t * t * (3.0 - 2.0 * t);
-        let mut local_pos = local_start.lerp(data.local_target, smooth_t);
+        let elastic_t = ElasticInOut.sample_unchecked(t);
+        let bounce_t = BounceInOut.sample_unchecked(t);
+        let bounce_height = 4. * (0.5 - (bounce_t - 0.5).abs());
+        let mut local_pos = local_start.lerp(data.local_target, elastic_t);
         let distance_to_go = local_pos.distance(data.local_target);
 
         // 3. Match on resolved type
@@ -360,14 +363,14 @@ fn update_jump(
                 transform.rotation = data.start_rotation;
             }
             AnimationType::Jump => {
-                local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
+                local_pos.z += bounce_height;
                 let s = 0.5 + (0.5 - t).abs();
                 transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
                 transform.rotation = data.start_rotation;
             }
             AnimationType::Spin => {
                 // Height and squash/stretch same as jump
-                local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
+                local_pos.z += bounce_height;
                 let s = 0.5 + (0.5 - t).abs();
                 transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
                 let angle = 2.0 * std::f32::consts::PI * t;
@@ -375,16 +378,14 @@ fn update_jump(
             }
             AnimationType::Flip => {
                 // Height and squash/stretch same as jump
-                local_pos.z += 4.0 * t * (1.0 - t) * 2.0;
+                local_pos.z += bounce_height;
                 let s = 0.5 + (0.5 - t).abs();
                 transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
                 let angle = 2.0 * std::f32::consts::PI * t;
                 if distance_to_go > 0.5 { transform.rotation = data.start_rotation * Quat::from_rotation_x(angle); }
                 else {
-                    let (foo, _, _) = transform.rotation.to_euler(EulerRot::YXZ);
-                    transform.rotation = Quat::from_rotation_y(foo);
-                    // log::info!("Foo: {:#?}", data);
-                    // panic!("Boo! Did line {} scare ya?!?", line!());
+                    let (y, _, _) = transform.rotation.to_euler(EulerRot::YXZ);
+                    transform.rotation = Quat::from_rotation_y(y);
                 }
             }
         }
@@ -399,3 +400,5 @@ fn update_jump(
         }
     }
 }
+// log::info!("Foo: {:#?}", data);
+// panic!("Boo! Did line {} scare ya?!?", line!());

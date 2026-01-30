@@ -219,7 +219,7 @@ fn setup(
         SafetyDisk,
         Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
         MeshMaterial3d(materials.add(Color::srgb(0.5, 0.25, 0.0))),
-        Transform::from_xyz(0.0, -0.99, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        Transform::from_xyz(0.0, -0.49, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
     ));
 
     // 2c. The Ground
@@ -227,7 +227,7 @@ fn setup(
         Ground,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
-        Transform::from_xyz(0.0, -1.0, 0.0),
+        Transform::from_xyz(0.0, -0.5, 0.0),
     ))
     .observe(|event: On<Pointer<Click>>, mut commands: Commands, cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>, jump_check: Query<&JumpData>, ground_query: Query<&GlobalTransform, With<Ground>>| {
         // Exact same logic as the Disk observer, but using the ground's transform!

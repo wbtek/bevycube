@@ -5,17 +5,17 @@ use bevy::asset::embedded_asset;
 
 // --- Components ---
 
-#[derive(Component, Default, Reflect)]
+#[derive(Debug, Component, Default, Reflect)]
 #[reflect(Component)]
 #[require(Transform, Visibility)]
 struct RotatingCube;
 
-#[derive(Component, Default, Reflect)]
+#[derive(Debug, Component, Default, Reflect)]
 #[reflect(Component)]
 #[require(Transform, Visibility)]
 struct RotatingDisk;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 struct Ground;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
@@ -26,7 +26,7 @@ enum AnimationType {
     Flip,
 }
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 struct JumpData {
     world_start: Vec3,
     start_rotation: Quat,
@@ -39,19 +39,19 @@ struct JumpData {
 
 // --- Resources ---
 
-#[derive(Resource)]
+#[derive(Debug, Resource)]
 struct RoundelMipmapLoading {
     // [512, 256, 128, 64, 32]
     handles: [Handle<Image>; 5],
     target_handle: Handle<Image>,
 }
 
-#[derive(Resource)]
+#[derive(Debug, Resource)]
 struct DiskParms {
     rotation_speed: f32,
 }
 
-#[derive(Resource)]
+#[derive(Debug, Resource)]
 struct CubeParms {
     rotation_speed: f32,
 }
@@ -59,6 +59,9 @@ struct CubeParms {
 // --- Main ---
 
 fn main() {
+    #[cfg(target_arch = "wasm32")]
+    console_log::init_with_level(log::Level::Debug).ok();
+
     App::new()
         .insert_resource(DiskParms { rotation_speed: 0.2 })
         .insert_resource(CubeParms { rotation_speed: -1.0 })
@@ -378,6 +381,8 @@ fn update_jump(
                 else {
                     let (foo, _, _) = transform.rotation.to_euler(EulerRot::YXZ);
                     transform.rotation = Quat::from_rotation_y(foo);
+                    // log::info!("Foo: {:#?}", data);
+                    // panic!("Boo! Did line {} scare ya?!?", line!());
                 }
             }
         }

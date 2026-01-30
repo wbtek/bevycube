@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+console_log = "1.0.0"
+log = "0.4.29"
 
 [dependencies.bevy]
 version = "0.18"
@@ -20,6 +22,9 @@ features = [
     "tonemapping_luts",
     "zstd_rust",
 ]
+
+[profile.dev]
+debug = true
 
 [profile.release]
 opt-level = "z"

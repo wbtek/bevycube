@@ -19,6 +19,9 @@ struct RotatingDisk;
 #[derive(Debug, Component)]
 struct Ground;
 
+#[derive(Debug, Component)]
+struct SafetyDisk;
+
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 enum AnimationType {
     Jump,
@@ -211,7 +214,15 @@ fn setup(
         }
     });
 
-    // 2b. The Ground
+    // 2b. The Safety Zone
+    commands.spawn((
+        SafetyDisk,
+        Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
+        MeshMaterial3d(materials.add(Color::srgb(0.5, 0.25, 0.0))),
+        Transform::from_xyz(0.0, -0.99, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+    ));
+
+    // 2c. The Ground
     commands.spawn((
         Ground,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),

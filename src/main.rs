@@ -268,7 +268,7 @@ fn setup(
         // single_mut() returns a Result. We must unwrap it to get the Transform.
         if let Ok(mut transform) = query.single_mut() {
             let delta = trigger.delta;
-            let sensitivity = 0.015; 
+            let sensitivity = 0.015;
             // X and Z movement (Panning)
             transform.translation.x -= delta.x * sensitivity;
             transform.translation.z -= delta.y * sensitivity;
@@ -294,7 +294,7 @@ fn setup(
         Camera3d::default(),
         // Simple perspective. No scaling_mode field exists here.
         Projection::Perspective(PerspectiveProjection::default()),
-        Transform::from_xyz(0.0, 15.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(0.0, 10.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
     ))
     .id();
 
@@ -304,16 +304,24 @@ fn setup(
 // --- Systems ---
 
 fn update_camera_zoom(
-    // 0.18 uses MessageReader for hardware events like MouseWheel
     mut mouse_wheel: MessageReader<bevy::input::mouse::MouseWheel>,
     mut query: Query<&mut Transform, With<MainCamera>>,
 ) {
     if let Ok(mut transform) = query.single_mut() {
         for event in mouse_wheel.read() {
-            let zoom_speed = 0.002;
-            // Adjust the local Z of the child camera (the dolly)
-            transform.translation.y = (transform.translation.y - event.y * zoom_speed).clamp(1.2, 12.0);
-            transform.translation.z = (transform.translation.z - event.y * zoom_speed).clamp(1.2, 12.0);
+            let zoom_amount = event.y * 0.005;
+
+            let forward = transform.forward();
+            transform.translation += forward * zoom_amount;
+
+            let distance = transform.translation.length();
+            if distance < 2.0 {
+                transform.translation = transform.translation.normalize() * 2.0;
+            } else if distance > 20.0 {
+                transform.translation = transform.translation.normalize() * 20.0;
+            }
+
+            transform.look_at(Vec3::ZERO, Vec3::Y);
         }
     }
 }

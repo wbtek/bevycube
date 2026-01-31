@@ -91,7 +91,7 @@ fn main() {
         })
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_disk, rotate_cube, update_jump, stitch_roundel_system))
+        .add_systems(Update, (rotate_disk, rotate_cube, update_jump, stitch_roundel_system, update_camera_zoom))
         .run();
 }
 
@@ -294,7 +294,7 @@ fn setup(
         Camera3d::default(),
         // Simple perspective. No scaling_mode field exists here.
         Projection::Perspective(PerspectiveProjection::default()),
-        Transform::from_xyz(0.0, 10.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(0.0, 15.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
     ))
     .id();
 
@@ -302,6 +302,21 @@ fn setup(
 }
 
 // --- Systems ---
+
+fn update_camera_zoom(
+    // 0.18 uses MessageReader for hardware events like MouseWheel
+    mut mouse_wheel: MessageReader<bevy::input::mouse::MouseWheel>,
+    mut query: Query<&mut Transform, With<MainCamera>>,
+) {
+    if let Ok(mut transform) = query.single_mut() {
+        for event in mouse_wheel.read() {
+            let zoom_speed = 0.002;
+            // Adjust the local Z of the child camera (the dolly)
+            transform.translation.y = (transform.translation.y - event.y * zoom_speed).clamp(1.2, 12.0);
+            transform.translation.z = (transform.translation.z - event.y * zoom_speed).clamp(1.2, 12.0);
+        }
+    }
+}
 
 fn stitch_roundel_system(
     mut commands: Commands,

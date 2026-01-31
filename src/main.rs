@@ -17,10 +17,19 @@ struct RotatingCube;
 struct RotatingDisk;
 
 #[derive(Debug, Component)]
+#[require(Transform, Visibility)]
 struct Ground;
 
 #[derive(Debug, Component)]
+#[require(Transform, Visibility)]
 struct SafetyDisk;
+
+#[derive(Component)]
+#[require(Transform, Visibility)]
+struct CameraAnchor;
+
+#[derive(Component)]
+struct MainCamera;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 enum AnimationType {
@@ -254,6 +263,16 @@ fn setup(
                 }
             }
         }
+    })
+    .observe(|trigger: On<Pointer<Drag>>, mut query: Query<&mut Transform, With<CameraAnchor>>| {
+        // single_mut() returns a Result. We must unwrap it to get the Transform.
+        if let Ok(mut transform) = query.single_mut() {
+            let delta = trigger.delta;
+            let sensitivity = 0.015; 
+            // X and Z movement (Panning)
+            transform.translation.x -= delta.x * sensitivity;
+            transform.translation.z -= delta.y * sensitivity;
+        }
     });
 
     // 3. Lighting & Camera
@@ -265,10 +284,21 @@ fn setup(
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
 
-    commands.spawn((
+    let anchor = commands.spawn((
+        CameraAnchor,
+        Transform::IDENTITY,
+    )).id();
+
+    let camera = commands.spawn((
+        MainCamera,
         Camera3d::default(),
-        Transform::from_xyz(-2.0, 5.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
-    ));
+        // Simple perspective. No scaling_mode field exists here.
+        Projection::Perspective(PerspectiveProjection::default()),
+        Transform::from_xyz(0.0, 10.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ))
+    .id();
+
+    commands.entity(anchor).add_child(camera);
 }
 
 // --- Systems ---

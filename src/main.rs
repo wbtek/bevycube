@@ -205,7 +205,7 @@ fn setup(
                         start_rotation,
                         local_target,
                         timer: 0.0,
-                        duration: 0.6,
+                        duration: 3.0,
                         target_entity,
                         animation: None,
                     });
@@ -239,7 +239,7 @@ fn setup(
                     let world_start = cube_global.translation();
                     let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
                     // Adjust Z or Y depending on your coordinate preference
-                    local_target.y += 1.0; 
+                    local_target.y += 1.0;
                     commands.entity(cube_entity).remove_parent_in_place();
                     let start_rotation = cube_global.compute_transform().rotation;
                     commands.entity(cube_entity).insert(JumpData {
@@ -247,7 +247,7 @@ fn setup(
                         start_rotation,
                         local_target,
                         timer: 0.0,
-                        duration: 0.8, // Maybe a bit slower for big ground jumps?
+                        duration: 3.0,
                         target_entity,
                         animation: None,
                     });
@@ -283,7 +283,7 @@ fn stitch_roundel_system(
 
     if loading.handles.iter().all(|h| images.get(h).is_some()) {
         let mut combined_data = Vec::new();
-        
+
         let first_img = images.get(&loading.handles[0]).unwrap();
         let detected_format = first_img.texture_descriptor.format;
 
@@ -293,7 +293,7 @@ fn stitch_roundel_system(
             if let Some(ref data) = img.data {
                 combined_data.extend_from_slice(data);
             } else {
-                return; 
+                return;
             }
         }
 
@@ -303,10 +303,10 @@ fn stitch_roundel_system(
             data: Some(combined_data),
             texture_descriptor: bevy::render::render_resource::TextureDescriptor {
                 label: Some("stitched_roundel"),
-                size: bevy::render::render_resource::Extent3d { 
-                    width: 512, 
-                    height: 512, 
-                    depth_or_array_layers: 1 
+                size: bevy::render::render_resource::Extent3d {
+                    width: 512,
+                    height: 512,
+                    depth_or_array_layers: 1,
                 },
                 mip_level_count: mip_count,
                 sample_count: 1,
@@ -378,9 +378,9 @@ fn update_jump(
         let dist = local_start.distance(data.local_target);
 
         let anim_type = *data.animation.get_or_insert_with(|| {
-            if dist < 4.0 { AnimationType::Slide }
-            else if dist < 5.0 { AnimationType::Jump }
-            else if dist < 6.0 { AnimationType::Spin }
+            if dist < 1.5 { AnimationType::Slide }
+            else if dist < 2.5 { AnimationType::Spin }
+            else if dist < 4.5 { AnimationType::Jump }
             else { AnimationType::Flip }
         });
 
@@ -390,51 +390,44 @@ fn update_jump(
         let elastic_t = ElasticInOut.sample_unchecked(t);
         let bounce_t = BounceInOut.sample_unchecked(t);
         let mut bounce_height = 4. * (0.5 - (bounce_t - 0.5).abs());
-        let mut local_pos = local_start.lerp(data.local_target, elastic_t);
-        let distance_to_go = local_pos.distance(data.local_target);
+        let s = (2. * (0.5 - t).abs()).clamp(0.5, 1.);
 
         // 3. Match on resolved type
         match anim_type {
             AnimationType::Slide => {
                 bounce_height = 0.;
-                transform.scale = Vec3::splat(1.0);
-                transform.rotation = data.start_rotation;
-            }
-            AnimationType::Jump => {
-                local_pos.z += bounce_height;
-                let s = 0.5 + (0.5 - t).abs();
-                transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
-                transform.rotation = data.start_rotation;
+                let yaw_angle = 2.0 * std::f32::consts::PI * t;
+                transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
             }
             AnimationType::Spin => {
-                // Height and squash/stretch same as jump
-                local_pos.z += bounce_height;
-                let s = 0.5 + (0.5 - t).abs();
-                transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
-                let angle = 2.0 * std::f32::consts::PI * t;
-                transform.rotation = data.start_rotation * Quat::from_rotation_y(angle);
+                bounce_height = 0.;
+                let yaw_angle = 4.0 * std::f32::consts::PI * t;
+                transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
+            }
+            AnimationType::Jump => {
+                let yaw_angle = 6.0 * std::f32::consts::PI * t;
+                transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
             }
             AnimationType::Flip => {
-                // Height and squash/stretch same as jump
-                local_pos.z += bounce_height;
-                let s = 0.5 + (0.5 - t).abs();
-                transform.scale = Vec3::new(1.0 + (1.0 - s), s, 1.0 + (1.0 - s));
-                let angle = 2.0 * std::f32::consts::PI * t;
-                if distance_to_go > 0.5 { transform.rotation = data.start_rotation * Quat::from_rotation_x(angle); }
-                else {
-                    let (y, _, _) = transform.rotation.to_euler(EulerRot::YXZ);
-                    transform.rotation = Quat::from_rotation_y(y);
+                let yaw_angle = 6.0 * std::f32::consts::PI * t;
+                let pitch_angle = 4.0 * std::f32::consts::PI * (t - 0.0909) * 1.2222;
+                if t > 0.0909 && t < 0.9090 {
+                    transform.rotation = data.start_rotation
+                        * Quat::from_rotation_y(yaw_angle) * Quat::from_rotation_x(pitch_angle);
+                } else {
+                    transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
                 }
             }
         }
 
         // 4. Finalize Position including which axis is up
+        transform.scale = Vec3::splat(s);
         let world_pos_horizontal = target_global.transform_point(local_start.lerp(data.local_target, elastic_t));
-        let final_world_pos = world_pos_horizontal + Vec3::new(0.0, bounce_height, 0.0);
+        let final_world_pos = world_pos_horizontal + Vec3::new(0., bounce_height, 0.);
         transform.translation = final_world_pos;
 
-        if t >= 1.0 {
-            transform.scale = Vec3::splat(1.0);
+        if t >= 1. {
+            transform.scale = Vec3::splat(1.);
             commands.entity(cube_entity).set_parent_in_place(data.target_entity);
             commands.entity(cube_entity).remove::<JumpData>();
         }

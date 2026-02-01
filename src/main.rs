@@ -216,34 +216,39 @@ fn setup(
     });
 
     commands.entity(disk_id)
-    .observe(|event: On<Pointer<Click>>,
-              mut commands: Commands,
-              cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>,
-              jump_check: Query<&JumpData>,
-              disk_query: Query<&GlobalTransform, With<RotatingDisk>>| {
+    .observe(move |event: On<Pointer<Click>>,
+                   mut commands: Commands,
+                   et: Res<EntityTable>,
+                   jump_check: Query<&JumpData>,
+                   global_query: Query<&GlobalTransform>| {
 
-        if let Some(hit_pos) = event.hit.position {
-            if let Ok((cube_entity, cube_global)) = cube_query.single() {
-                if jump_check.contains(cube_entity) { return; }
-                let target_entity = event.event_target();
-                if let Ok(target_global) = disk_query.get(target_entity) {
-                    let world_start = cube_global.translation();
-                    let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
-                    local_target.z += 1.0;
-                    commands.entity(cube_entity).remove_parent_in_place();
-                    let start_rotation = cube_global.compute_transform().rotation;
-                    commands.entity(cube_entity).insert(JumpData {
-                        world_start,
-                        start_rotation,
-                        local_target,
-                        timer: 0.0,
-                        duration: 3.0,
-                        target_entity,
-                        animation: None,
-                    });
-                }
-            }
-        }
+        let Some(hit_pos) = event.hit.position else { return };
+        let Some(cube_entity) = et.cube else { return };
+
+        if jump_check.contains(cube_entity) { return; }
+
+        let Ok(cube_global) = global_query.get(cube_entity) else { return };
+        let Ok(target_global) = global_query.get(disk_id) else { return };
+
+        let world_start = cube_global.translation();
+        let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
+
+        // Disk-specific: The disk is rotated -PI/2 on X, so "up" from its
+        // surface in local space is the Z axis.
+        local_target.z += 1.0;
+
+        commands.entity(cube_entity).remove_parent_in_place();
+        let start_rotation = cube_global.compute_transform().rotation;
+
+        commands.entity(cube_entity).insert(JumpData {
+            world_start,
+            start_rotation,
+            local_target,
+            timer: 0.0,
+            duration: 3.0,
+            target_entity: disk_id,
+            animation: None,
+        });
     });
 
     // 2b. The Safety Zone

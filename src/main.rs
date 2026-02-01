@@ -201,7 +201,7 @@ fn setup(
         settings.rotation_speed += drag.delta.x * 0.005;
     });
 
-    // 2a. The Turntable
+    // 2. The Turntable
     let disk_id = commands.spawn((
         RotatingDisk,
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
@@ -215,43 +215,7 @@ fn setup(
         settings.rotation_speed += drag.delta.x * 0.001;
     });
 
-    commands.entity(disk_id)
-    .observe(move |event: On<Pointer<Click>>,
-                   mut commands: Commands,
-                   et: Res<EntityTable>,
-                   jump_check: Query<&JumpData>,
-                   global_query: Query<&GlobalTransform>| {
-
-        let Some(hit_pos) = event.hit.position else { return };
-        let Some(cube_entity) = et.cube else { return };
-
-        if jump_check.contains(cube_entity) { return; }
-
-        let Ok(cube_global) = global_query.get(cube_entity) else { return };
-        let Ok(target_global) = global_query.get(disk_id) else { return };
-
-        let world_start = cube_global.translation();
-        let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
-
-        // Disk-specific: The disk is rotated -PI/2 on X, so "up" from its
-        // surface in local space is the Z axis.
-        local_target.z += 1.0;
-
-        commands.entity(cube_entity).remove_parent_in_place();
-        let start_rotation = cube_global.compute_transform().rotation;
-
-        commands.entity(cube_entity).insert(JumpData {
-            world_start,
-            start_rotation,
-            local_target,
-            timer: 0.0,
-            duration: 3.0,
-            target_entity: disk_id,
-            animation: None,
-        });
-    });
-
-    // 2b. The Safety Zone
+    // 3. The Safety Zone
     let safety_id = commands.spawn((
         SafetyDisk,
         Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
@@ -260,7 +224,7 @@ fn setup(
     )).id();
     et.safety_disk = Some(safety_id);
 
-    // 2c. The Ground
+    // 4. The Ground
     let ground_id = commands.spawn((
         Ground,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
@@ -268,41 +232,6 @@ fn setup(
         Transform::from_xyz(0.0, -0.5, 0.0),
     )).id();
     et.ground = Some(ground_id);
-
-    commands.entity(ground_id)
-    .observe(move |event: On<Pointer<Click>>,
-                   mut commands: Commands,
-                   et: Res<EntityTable>,
-                   jump_check: Query<&JumpData>,
-                   global_query: Query<&GlobalTransform>| {
-
-        let Some(hit_pos) = event.hit.position else { return };
-        let Some(cube_entity) = et.cube else { return };
-
-        // 1. Safety First: If the cube is already jumping, don't interrupt.
-        if jump_check.contains(cube_entity) { return; }
-
-        // 2. Resolve Transforms: Use one generic query for both entities.
-        let Ok(cube_global) = global_query.get(cube_entity) else { return };
-        let Ok(target_global) = global_query.get(ground_id) else { return };
-
-        // 3. Logic: Calculate local target relative to ground.
-        let world_start = cube_global.translation();
-        let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
-        local_target.y += 1.0;
-
-        // 4. Execution: Detach and Insert JumpData.
-        commands.entity(cube_entity).remove_parent_in_place();
-        commands.entity(cube_entity).insert(JumpData {
-            world_start,
-            start_rotation: cube_global.compute_transform().rotation,
-            local_target,
-            timer: 0.0,
-            duration: 3.0,
-            target_entity: ground_id,
-            animation: None,
-        });
-    });
 
     commands.entity(ground_id)
     .observe(|trigger: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
@@ -313,7 +242,47 @@ fn setup(
         }
     });
 
-    // 3. Lighting & Camera
+    // common click observer for disk and ground click
+    let jump_observer = move |event: On<Pointer<Click>>,
+                              mut commands: Commands,
+                              et: Res<EntityTable>,
+                              jump_check: Query<&JumpData>,
+                              global_query: Query<&GlobalTransform>| {
+
+        let Some(hit_pos) = event.hit.position else { return };
+        let Some(cube_entity) = et.cube else { return };
+        if jump_check.contains(cube_entity) { return; }
+
+        let target_entity = event.event_target(); // Automatically gets disk_id or ground_id
+        let Ok(cube_global) = global_query.get(cube_entity) else { return };
+        let Ok(target_global) = global_query.get(target_entity) else { return };
+
+        let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
+
+        // The only "difference" check:
+        if target_entity == disk_id {
+            local_target.z += 1.0;
+        } else {
+            local_target.y += 1.0;
+        }
+
+        commands.entity(cube_entity).remove_parent_in_place();
+        commands.entity(cube_entity).insert(JumpData {
+            world_start: cube_global.translation(),
+            start_rotation: cube_global.compute_transform().rotation,
+            local_target,
+            timer: 0.0,
+            duration: 3.0,
+            target_entity,
+            animation: None,
+        });
+    };
+
+    // attach same observer to both
+    commands.entity(ground_id).observe(jump_observer.clone());
+    commands.entity(disk_id).observe(jump_observer);
+
+    // 5. Lighting
     commands.spawn((
         PointLight {
             shadows_enabled: true,
@@ -322,6 +291,7 @@ fn setup(
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
 
+    // 6. Camera
     let anchor_id = commands.spawn((
         CameraAnchor,
         Transform::IDENTITY,

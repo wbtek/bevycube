@@ -69,6 +69,16 @@ struct CubeParms {
     rotation_speed: f32,
 }
 
+#[derive(Debug, Resource, Default)]
+struct EntityTable {
+    cube: Option<Entity>,
+    disk: Option<Entity>,
+    ground: Option<Entity>,
+    safety_disk: Option<Entity>,
+    main_anchor: Option<Entity>,
+    main_camera: Option<Entity>,
+}
+
 // --- Main ---
 
 fn main() {
@@ -76,6 +86,7 @@ fn main() {
     console_log::init_with_level(log::Level::Debug).ok();
 
     App::new()
+        .init_resource::<EntityTable>()
         .insert_resource(DiskParms { rotation_speed: 0.2 })
         .insert_resource(CubeParms { rotation_speed: -1.0 })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
@@ -101,6 +112,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
+    mut et: ResMut<EntityTable>,
 ) {
 
     let roundel_handle = asset_server.load("embedded://bevycube/media/WhiteBearCrab64.jpg"); // swapped later
@@ -131,6 +143,8 @@ fn setup(
         RotatingCube,
         Transform::from_xyz(0.0, 1.0, 0.0),
     )).id();
+    et.cube = Some(cube_id);
+
 
     let face_data = [ // front/back, right/left, top/bottom
         (Vec3::new(0.0, 0.0, 0.99), Quat::IDENTITY),
@@ -185,7 +199,7 @@ fn setup(
     });
 
     // 2a. The Turntable
-    commands.spawn((
+    let disk_id = commands.spawn((
         RotatingDisk,
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
         MeshMaterial3d(materials.add(roundel_mat.clone())),
@@ -222,18 +236,20 @@ fn setup(
                 }
             }
         }
-    });
+    }).id();
+    et.disk = Some(disk_id);
 
     // 2b. The Safety Zone
-    commands.spawn((
+    let safety_id = commands.spawn((
         SafetyDisk,
         Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
         MeshMaterial3d(materials.add(Color::srgb(0.5, 0.25, 0.0))),
         Transform::from_xyz(0.0, -0.49, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-    ));
+    )).id();
+    et.safety_disk = Some(safety_id);
 
     // 2c. The Ground
-    commands.spawn((
+    let ground_id = commands.spawn((
         Ground,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
@@ -274,7 +290,8 @@ fn setup(
             transform.translation.x -= delta.x * sensitivity;
             transform.translation.z -= delta.y * sensitivity;
         }
-    });
+    }).id();
+    et.ground = Some(ground_id);
 
     // 3. Lighting & Camera
     commands.spawn((
@@ -285,12 +302,13 @@ fn setup(
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
 
-    let anchor = commands.spawn((
+    let anchor_id = commands.spawn((
         CameraAnchor,
         Transform::IDENTITY,
     )).id();
+    et.main_anchor = Some(anchor_id);
 
-    let camera = commands.spawn((
+    let camera_id = commands.spawn((
         MainCamera,
         Camera3d::default(),
         // Simple perspective. No scaling_mode field exists here.
@@ -298,8 +316,9 @@ fn setup(
         Transform::from_xyz(0.0, 7.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
     ))
     .id();
+    et.main_camera = Some(camera_id);
 
-    commands.entity(anchor).add_child(camera);
+    commands.entity(anchor_id).add_child(camera_id);
 }
 
 // --- Systems ---

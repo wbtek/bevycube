@@ -197,7 +197,7 @@ fn setup(
     });
 
     commands.entity(cube_id)
-    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
+    .observe(move |drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
         settings.rotation_speed += drag.delta.x * 0.005;
     });
 
@@ -211,7 +211,7 @@ fn setup(
     et.disk = Some(disk_id);
 
     commands.entity(disk_id)
-    .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
+    .observe(move |drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
         settings.rotation_speed += drag.delta.x * 0.001;
     });
 

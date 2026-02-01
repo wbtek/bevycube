@@ -295,7 +295,7 @@ fn setup(
         Camera3d::default(),
         // Simple perspective. No scaling_mode field exists here.
         Projection::Perspective(PerspectiveProjection::default()),
-        Transform::from_xyz(0.0, 10.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(0.0, 7.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
     ))
     .id();
 
@@ -312,7 +312,7 @@ fn update_camera_zoom(
         for event in mouse_wheel.read() {
             let zoom_amount = event.y * 0.005;
 
-            transform.translation.z = (transform.translation.z - zoom_amount).clamp(2.0, 20.0);
+            transform.translation.z = (transform.translation.z - zoom_amount).clamp(0.01, 40.0);
             transform.look_at(Vec3::ZERO, Vec3::Y);
         }
     }
@@ -340,7 +340,7 @@ fn update_mobile_zoom(
         if pinch_delta.abs() > 0.1 {
             let zoom_speed = 0.05; // Adjust for touch sensitivity
             // Move local Z
-            transform.translation.z = (transform.translation.z - pinch_delta * zoom_speed).clamp(5.0, 40.0);
+            transform.translation.z = (transform.translation.z - pinch_delta * zoom_speed).clamp(0.01, 40.0);
             // Stay focused on the anchor
             transform.look_at(Vec3::ZERO, Vec3::Y);
         }

@@ -293,14 +293,11 @@ fn setup(
     });
 
     commands.entity(ground_id)
-    .observe(|trigger: On<Pointer<Drag>>, mut query: Query<&mut Transform, With<CameraAnchor>>| {
-        // single_mut() returns a Result. We must unwrap it to get the Transform.
-        if let Ok(mut transform) = query.single_mut() {
-            let delta = trigger.delta;
+    .observe(|trigger: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
+        if let Some(mut transform) = et.main_anchor.and_then(|id| query.get_mut(id).ok()) {
             let sensitivity = 0.015;
-            // X and Z movement (Panning)
-            transform.translation.x -= delta.x * sensitivity;
-            transform.translation.z -= delta.y * sensitivity;
+            transform.translation.x -= trigger.delta.x * sensitivity;
+            transform.translation.z -= trigger.delta.y * sensitivity;
         }
     });
 

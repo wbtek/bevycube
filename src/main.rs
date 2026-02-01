@@ -265,31 +265,38 @@ fn setup(
     et.ground = Some(ground_id);
 
     commands.entity(ground_id)
-    .observe(|event: On<Pointer<Click>>, mut commands: Commands, cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>, jump_check: Query<&JumpData>, ground_query: Query<&GlobalTransform, With<Ground>>| {
-        // Exact same logic as the Disk observer, but using the ground's transform!
-        if let Some(hit_pos) = event.hit.position {
-            if let Ok((cube_entity, cube_global)) = cube_query.single() {
-                if jump_check.contains(cube_entity) { return; }
-                let target_entity = event.event_target();
-                if let Ok(target_global) = ground_query.get(target_entity) {
-                    let world_start = cube_global.translation();
-                    let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
-                    // Adjust Z or Y depending on your coordinate preference
-                    local_target.y += 1.0;
-                    commands.entity(cube_entity).remove_parent_in_place();
-                    let start_rotation = cube_global.compute_transform().rotation;
-                    commands.entity(cube_entity).insert(JumpData {
-                        world_start,
-                        start_rotation,
-                        local_target,
-                        timer: 0.0,
-                        duration: 3.0,
-                        target_entity,
-                        animation: None,
-                    });
-                }
-            }
-        }
+    .observe(move |event: On<Pointer<Click>>,
+                   mut commands: Commands,
+                   et: Res<EntityTable>,
+                   jump_check: Query<&JumpData>,
+                   global_query: Query<&GlobalTransform>| {
+
+        let Some(hit_pos) = event.hit.position else { return };
+        let Some(cube_entity) = et.cube else { return };
+
+        // 1. Safety First: If the cube is already jumping, don't interrupt.
+        if jump_check.contains(cube_entity) { return; }
+
+        // 2. Resolve Transforms: Use one generic query for both entities.
+        let Ok(cube_global) = global_query.get(cube_entity) else { return };
+        let Ok(target_global) = global_query.get(ground_id) else { return };
+
+        // 3. Logic: Calculate local target relative to ground.
+        let world_start = cube_global.translation();
+        let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
+        local_target.y += 1.0;
+
+        // 4. Execution: Detach and Insert JumpData.
+        commands.entity(cube_entity).remove_parent_in_place();
+        commands.entity(cube_entity).insert(JumpData {
+            world_start,
+            start_rotation: cube_global.compute_transform().rotation,
+            local_target,
+            timer: 0.0,
+            duration: 3.0,
+            target_entity: ground_id,
+            animation: None,
+        });
     });
 
     commands.entity(ground_id)
@@ -480,7 +487,7 @@ fn update_jump(
 ) {
     let Some(cube_entity) = et.cube else { return };
     let Ok((mut transform, mut data)) = cube_query.get_mut(cube_entity) else { return };
-    
+
     let Ok(target_global) = target_query.get(data.target_entity) else { return };
 
     // 1. Resolve Animation Type Once per Animation

@@ -197,7 +197,13 @@ fn setup(
     });
 
     commands.entity(cube_id)
-    .observe(move |drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
+    .observe(|mut click: On<Pointer<Click>>| {
+        click.propagate(false);
+    });
+
+    commands.entity(cube_id)
+    .observe(move |mut drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
+        drag.propagate(false);
         settings.rotation_speed += drag.delta.x * 0.005;
     });
 

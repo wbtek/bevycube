@@ -255,6 +255,7 @@ fn setup(
                               jump_check: Query<&JumpData>,
                               global_query: Query<&GlobalTransform>| {
 
+        if event.duration.as_millis() > 250 { return; }
         let Some(hit_pos) = event.hit.position else { return };
         let Some(cube_entity) = et.cube else { return };
         if jump_check.contains(cube_entity) { return; }

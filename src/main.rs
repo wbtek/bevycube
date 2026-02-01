@@ -91,7 +91,8 @@ fn main() {
         })
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (rotate_disk, rotate_cube, update_jump, stitch_roundel_system, update_camera_zoom))
+        .add_systems(Update, (rotate_disk, rotate_cube, update_jump, stitch_roundel_system,
+            update_camera_zoom, update_mobile_zoom))
         .run();
 }
 
@@ -311,16 +312,36 @@ fn update_camera_zoom(
         for event in mouse_wheel.read() {
             let zoom_amount = event.y * 0.005;
 
-            let forward = transform.forward();
-            transform.translation += forward * zoom_amount;
+            transform.translation.z = (transform.translation.z - zoom_amount).clamp(2.0, 20.0);
+            transform.look_at(Vec3::ZERO, Vec3::Y);
+        }
+    }
+}
 
-            let distance = transform.translation.length();
-            if distance < 2.0 {
-                transform.translation = transform.translation.normalize() * 2.0;
-            } else if distance > 20.0 {
-                transform.translation = transform.translation.normalize() * 20.0;
-            }
+fn update_mobile_zoom(
+    touches: Res<bevy::input::touch::Touches>,
+    mut query: Query<&mut Transform, With<MainCamera>>,
+) {
+    // We only zoom if exactly two fingers are on the screen
+    let active: Vec<_> = touches.iter().collect();
+    if active.len() != 2 { return; }
 
+    if let Ok(mut transform) = query.single_mut() {
+        let p1 = active[0].position();
+        let p2 = active[1].position();
+        let prev_p1 = active[0].previous_position();
+        let prev_p2 = active[1].previous_position();
+
+        // Calculate how much the gap between fingers changed
+        let current_dist = p1.distance(p2);
+        let prev_dist = prev_p1.distance(prev_p2);
+        let pinch_delta = current_dist - prev_dist;
+
+        if pinch_delta.abs() > 0.1 {
+            let zoom_speed = 0.05; // Adjust for touch sensitivity
+            // Move local Z
+            transform.translation.z = (transform.translation.z - pinch_delta * zoom_speed).clamp(5.0, 40.0);
+            // Stay focused on the anchor
             transform.look_at(Vec3::ZERO, Vec3::Y);
         }
     }

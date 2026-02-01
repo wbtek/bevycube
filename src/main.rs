@@ -155,7 +155,8 @@ fn setup(
         (Vec3::new(0.0, -0.99, 0.0), Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
     ];
 
-    commands.entity(cube_id).with_children(|parent| {
+    commands.entity(cube_id)
+    .with_children(|parent| {
         // Core center sphere
         parent.spawn((
             Mesh3d(meshes.add(Sphere::new(0.1).mesh().uv(32, 18))),
@@ -193,7 +194,9 @@ fn setup(
                 },
             ));
         }
-    })
+    });
+
+    commands.entity(cube_id)
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {
         settings.rotation_speed += drag.delta.x * 0.005;
     });
@@ -204,10 +207,15 @@ fn setup(
         Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
         MeshMaterial3d(materials.add(roundel_mat.clone())),
         Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-    ))
+    )).id();
+    et.disk = Some(disk_id);
+
+    commands.entity(disk_id)
     .observe(|drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
         settings.rotation_speed += drag.delta.x * 0.001;
-    })
+    });
+
+    commands.entity(disk_id)
     .observe(|event: On<Pointer<Click>>,
               mut commands: Commands,
               cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>,
@@ -236,8 +244,7 @@ fn setup(
                 }
             }
         }
-    }).id();
-    et.disk = Some(disk_id);
+    });
 
     // 2b. The Safety Zone
     let safety_id = commands.spawn((
@@ -254,7 +261,10 @@ fn setup(
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
         MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
         Transform::from_xyz(0.0, -0.5, 0.0),
-    ))
+    )).id();
+    et.ground = Some(ground_id);
+
+    commands.entity(ground_id)
     .observe(|event: On<Pointer<Click>>, mut commands: Commands, cube_query: Query<(Entity, &GlobalTransform), With<RotatingCube>>, jump_check: Query<&JumpData>, ground_query: Query<&GlobalTransform, With<Ground>>| {
         // Exact same logic as the Disk observer, but using the ground's transform!
         if let Some(hit_pos) = event.hit.position {
@@ -280,7 +290,9 @@ fn setup(
                 }
             }
         }
-    })
+    });
+
+    commands.entity(ground_id)
     .observe(|trigger: On<Pointer<Drag>>, mut query: Query<&mut Transform, With<CameraAnchor>>| {
         // single_mut() returns a Result. We must unwrap it to get the Transform.
         if let Ok(mut transform) = query.single_mut() {
@@ -290,8 +302,7 @@ fn setup(
             transform.translation.x -= delta.x * sensitivity;
             transform.translation.z -= delta.y * sensitivity;
         }
-    }).id();
-    et.ground = Some(ground_id);
+    });
 
     // 3. Lighting & Camera
     commands.spawn((

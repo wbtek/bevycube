@@ -325,9 +325,10 @@ fn setup(
 
 fn update_camera_zoom(
     mut mouse_wheel: MessageReader<bevy::input::mouse::MouseWheel>,
-    mut query: Query<&mut Transform, With<MainCamera>>,
+    et: Res<EntityTable>,
+    mut query: Query<&mut Transform>,
 ) {
-    if let Ok(mut transform) = query.single_mut() {
+    if let Some(mut transform) = et.main_camera.and_then(|id| query.get_mut(id).ok()) {
         for event in mouse_wheel.read() {
             let zoom_amount = event.y * 0.005;
 
@@ -339,13 +340,14 @@ fn update_camera_zoom(
 
 fn update_mobile_zoom(
     touches: Res<bevy::input::touch::Touches>,
-    mut query: Query<&mut Transform, With<MainCamera>>,
+    et: Res<EntityTable>,
+    mut query: Query<&mut Transform>,
 ) {
     // We only zoom if exactly two fingers are on the screen
     let active: Vec<_> = touches.iter().collect();
     if active.len() != 2 { return; }
 
-    if let Ok(mut transform) = query.single_mut() {
+    if let Some(mut transform) = et.main_camera.and_then(|id| query.get_mut(id).ok()) {
         let p1 = active[0].position();
         let p2 = active[1].position();
         let prev_p1 = active[0].previous_position();
@@ -433,26 +435,30 @@ fn stitch_roundel_system(
 }
 
 fn rotate_cube(
-    mut query: Query<(&mut Transform, &GlobalTransform), With<RotatingCube>>,
+    et: Res<EntityTable>,
+    mut query: Query<(&mut Transform, &GlobalTransform)>,
     settings: Res<CubeParms>,
     time: Res<Time>,
 ) {
     let seconds_passed = time.delta_secs();
-    for (mut transform, global_transform) in &mut query {
-        let local_up = global_transform.affine().inverse().transform_vector3(Vec3::Y);
-        transform.rotate_local_axis(
-            Dir3::new_unchecked(local_up.normalize()),
-            settings.rotation_speed * seconds_passed
-        );
+    if let Some(id) = et.cube {
+        if let Ok((mut transform, global_transform)) = query.get_mut(id) {
+            let local_up = global_transform.affine().inverse().transform_vector3(Vec3::Y);
+            transform.rotate_local_axis(
+                Dir3::new_unchecked(local_up.normalize()),
+                settings.rotation_speed * seconds_passed
+            );
+        }
     }
 }
 
 fn rotate_disk(
-    mut query: Query<&mut Transform, With<RotatingDisk>>,
+    et: Res<EntityTable>,
+    mut query: Query<&mut Transform>,
     time: Res<Time>,
     settings: Res<DiskParms>,
 ) {
-    for mut transform in &mut query {
+    if let Some(mut transform) = et.disk.and_then(|id| query.get_mut(id).ok()) {
         transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
     }
 }
@@ -460,70 +466,72 @@ fn rotate_disk(
 fn update_jump(
     mut commands: Commands,
     time: Res<Time>,
+    et: Res<EntityTable>,
     target_query: Query<&GlobalTransform>,
-    mut cube_query: Query<(Entity, &mut Transform, &mut JumpData), With<RotatingCube>>,
+    mut cube_query: Query<(&mut Transform, &mut JumpData)>,
 ) {
-    for (cube_entity, mut transform, mut data) in &mut cube_query {
-        let Ok(target_global) = target_query.get(data.target_entity) else { continue };
+    let Some(cube_entity) = et.cube else { return };
+    let Ok((mut transform, mut data)) = cube_query.get_mut(cube_entity) else { return };
+    
+    let Ok(target_global) = target_query.get(data.target_entity) else { return };
 
-        // 1. Resolve Animation Type Once per Animation
-        let local_start = target_global.affine().inverse().transform_point3(data.world_start);
-        let dist = local_start.distance(data.local_target);
+    // 1. Resolve Animation Type Once per Animation
+    let local_start = target_global.affine().inverse().transform_point3(data.world_start);
+    let dist = local_start.distance(data.local_target);
 
-        let anim_type = *data.animation.get_or_insert_with(|| {
-            if dist < 1.5 { AnimationType::Slide }
-            else if dist < 2.5 { AnimationType::Spin }
-            else if dist < 4.5 { AnimationType::Jump }
-            else { AnimationType::Flip }
-        });
+    let anim_type = *data.animation.get_or_insert_with(|| {
+        if dist < 1.5 { AnimationType::Slide }
+        else if dist < 2.5 { AnimationType::Spin }
+        else if dist < 4.5 { AnimationType::Jump }
+        else { AnimationType::Flip }
+    });
 
-        // 2. Update Timer and Progress
-        data.timer += time.delta_secs();
-        let t = (data.timer / data.duration).clamp(0.0, 1.0);
-        let elastic_t = ElasticInOut.sample_unchecked(t);
-        let bounce_t = BounceInOut.sample_unchecked(t);
-        let mut bounce_height = 4. * (0.5 - (bounce_t - 0.5).abs());
-        let s = (2. * (0.5 - t).abs()).clamp(0.5, 1.);
+    // 2. Update Timer and Progress
+    data.timer += time.delta_secs();
+    let t = (data.timer / data.duration).clamp(0.0, 1.0);
+    let elastic_t = ElasticInOut.sample_unchecked(t);
+    let bounce_t = BounceInOut.sample_unchecked(t);
+    let mut bounce_height = 4. * (0.5 - (bounce_t - 0.5).abs());
+    let s = (2. * (0.5 - t).abs()).clamp(0.5, 1.);
 
-        // 3. Match on resolved type
-        match anim_type {
-            AnimationType::Slide => {
-                bounce_height = 0.;
-                let yaw_angle = 2.0 * std::f32::consts::PI * t;
+    // 3. Match on resolved type
+    match anim_type {
+        AnimationType::Slide => {
+            bounce_height = 0.;
+            let yaw_angle = 2.0 * std::f32::consts::PI * t;
+            transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
+        }
+        AnimationType::Spin => {
+            bounce_height = 0.;
+            let yaw_angle = 4.0 * std::f32::consts::PI * t;
+            transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
+        }
+        AnimationType::Jump => {
+            let yaw_angle = 6.0 * std::f32::consts::PI * t;
+            transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
+        }
+        AnimationType::Flip => {
+            let yaw_angle = 6.0 * std::f32::consts::PI * t;
+            let pitch_angle = 4.0 * std::f32::consts::PI * (t - 0.0909) * 1.2222;
+            if t > 0.0909 && t < 0.9090 {
+                transform.rotation = data.start_rotation
+                    * Quat::from_rotation_y(yaw_angle) * Quat::from_rotation_x(pitch_angle);
+            } else {
                 transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
-            }
-            AnimationType::Spin => {
-                bounce_height = 0.;
-                let yaw_angle = 4.0 * std::f32::consts::PI * t;
-                transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
-            }
-            AnimationType::Jump => {
-                let yaw_angle = 6.0 * std::f32::consts::PI * t;
-                transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
-            }
-            AnimationType::Flip => {
-                let yaw_angle = 6.0 * std::f32::consts::PI * t;
-                let pitch_angle = 4.0 * std::f32::consts::PI * (t - 0.0909) * 1.2222;
-                if t > 0.0909 && t < 0.9090 {
-                    transform.rotation = data.start_rotation
-                        * Quat::from_rotation_y(yaw_angle) * Quat::from_rotation_x(pitch_angle);
-                } else {
-                    transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
-                }
             }
         }
+    }
 
-        // 4. Finalize Position including which axis is up
-        transform.scale = Vec3::splat(s);
-        let world_pos_horizontal = target_global.transform_point(local_start.lerp(data.local_target, elastic_t));
-        let final_world_pos = world_pos_horizontal + Vec3::new(0., bounce_height, 0.);
-        transform.translation = final_world_pos;
+    // 4. Finalize Position including which axis is up
+    transform.scale = Vec3::splat(s);
+    let world_pos_horizontal = target_global.transform_point(local_start.lerp(data.local_target, elastic_t));
+    let final_world_pos = world_pos_horizontal + Vec3::new(0., bounce_height, 0.);
+    transform.translation = final_world_pos;
 
-        if t >= 1. {
-            transform.scale = Vec3::splat(1.);
-            commands.entity(cube_entity).set_parent_in_place(data.target_entity);
-            commands.entity(cube_entity).remove::<JumpData>();
-        }
+    if t >= 1. {
+        transform.scale = Vec3::splat(1.);
+        commands.entity(cube_entity).set_parent_in_place(data.target_entity);
+        commands.entity(cube_entity).remove::<JumpData>();
     }
 }
 // log::info!("Foo: {:#?}", data);

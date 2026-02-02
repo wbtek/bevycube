@@ -99,6 +99,8 @@ fn main() {
             embedded_asset!(app, "media/WhiteBearCrab128.jpg");
             embedded_asset!(app, "media/WhiteBearCrab64.jpg");
             embedded_asset!(app, "media/WhiteBearCrab32.jpg");
+            embedded_asset!(app, "media/wbtekbg2b512.jpg");
+            embedded_asset!(app, "media/settings.jpg");
         })
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
@@ -232,13 +234,40 @@ fn setup(
     et.safety_disk = Some(safety_id);
 
     // 4. The Ground
+    let ocean_floor_handle = asset_server.load("embedded://bevycube/media/wbtekbg2b512.jpg");
+    let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
+
+    let ocean_floor_mat = StandardMaterial {
+        base_color_texture: Some(ocean_floor_handle.clone()),
+        alpha_mode: AlphaMode::Opaque,
+        cull_mode: Some(bevy::render::render_resource::Face::Back),
+        ..default()
+    };
+
     let ground_id = commands.spawn((
         Ground,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
-        MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
+        MeshMaterial3d(materials.add(ocean_floor_mat.clone())),
         Transform::from_xyz(0.0, -0.5, 0.0),
     )).id();
     et.ground = Some(ground_id);
+
+    commands.entity(ground_id)
+    .with_children(|parent| {
+        // Spawn Settings in the lower right (relative to parent)
+        parent.spawn((
+            Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color_texture: Some(settings_handle),
+                alpha_mode: AlphaMode::Add,
+                reflectance: 0.0, // base image already has reflectance
+                ..default()
+            })),
+            // Parent is 20x20, so bounds are -10 to +10.
+            // Center of 5x5 square in corner is at 7.5.
+            Transform::from_xyz(7.5, 0.01, 7.5),
+        ));
+    });
 
     commands.entity(ground_id)
     .observe(|mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {

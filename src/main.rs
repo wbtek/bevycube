@@ -197,7 +197,7 @@ fn setup(
     });
 
     commands.entity(cube_id)
-    .observe(|mut click: On<Pointer<Click>>| {
+    .observe(move |mut click: On<Pointer<Click>>| {
         click.propagate(false);
     });
 
@@ -217,7 +217,8 @@ fn setup(
     et.disk = Some(disk_id);
 
     commands.entity(disk_id)
-    .observe(move |drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
+    .observe(move |mut drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
+        drag.propagate(false);
         settings.rotation_speed += drag.delta.x * 0.001;
     });
 
@@ -240,27 +241,29 @@ fn setup(
     et.ground = Some(ground_id);
 
     commands.entity(ground_id)
-    .observe(|trigger: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
+    .observe(|mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
+        drag.propagate(false);
         if let Some(mut transform) = et.main_anchor.and_then(|id| query.get_mut(id).ok()) {
             let sensitivity = 0.015;
-            transform.translation.x -= trigger.delta.x * sensitivity;
-            transform.translation.z -= trigger.delta.y * sensitivity;
+            transform.translation.x -= drag.delta.x * sensitivity;
+            transform.translation.z -= drag.delta.y * sensitivity;
         }
     });
 
     // common click observer for disk and ground click
-    let jump_observer = move |event: On<Pointer<Click>>,
+    let jump_observer = move |mut click: On<Pointer<Click>>,
                               mut commands: Commands,
                               et: Res<EntityTable>,
                               jump_check: Query<&JumpData>,
                               global_query: Query<&GlobalTransform>| {
 
-        if event.duration.as_millis() > 250 { return; }
-        let Some(hit_pos) = event.hit.position else { return };
+        click.propagate(false);
+        if click.duration.as_millis() > 250 { return; }
+        let Some(hit_pos) = click.hit.position else { return };
         let Some(cube_entity) = et.cube else { return };
         if jump_check.contains(cube_entity) { return; }
 
-        let target_entity = event.event_target(); // Automatically gets disk_id or ground_id
+        let target_entity = click.event_target(); // Automatically gets disk_id or ground_id
         let Ok(cube_global) = global_query.get(cube_entity) else { return };
         let Ok(target_global) = global_query.get(target_entity) else { return };
 

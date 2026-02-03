@@ -307,11 +307,13 @@ fn setup(
 
     commands.entity(ground_id).add_child(settings_id);
 
+    let to_local = |pixel: f32| (pixel - 256.0) / 512.0 * 5.0;
+
     let set_anisotropic_id = commands.spawn((
         SetAnisotropic,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
         MeshMaterial3d(materials.add(diamond_mat.clone())),
-        Transform::from_xyz(-1.318, 0.01, -0.918),
+        Transform::from_xyz(to_local(107.+14.), 0.01, to_local(140.+22.)),
     )).id();
     et.set_anisotropic = Some(set_anisotropic_id);
 
@@ -321,7 +323,7 @@ fn setup(
         SetMipmaps,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
         MeshMaterial3d(materials.add(diamond_mat.clone())),
-        Transform::from_xyz(-1.318, 0.01, -0.039),
+        Transform::from_xyz(to_local(107.+14.), 0.01, to_local(230.+22.)),
     )).id();
     et.set_mipmaps = Some(set_mipmaps_id);
 
@@ -331,7 +333,7 @@ fn setup(
         SetResolution,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
         MeshMaterial3d(materials.add(diamond_mat.clone())),
-        Transform::from_xyz(-1.318, 0.01, 0.840),
+        Transform::from_xyz(to_local(107.+14.), 0.01, to_local(320.+22.)),
     )).id();
     et.set_resolution = Some(set_resolution_id);
 
@@ -341,7 +343,7 @@ fn setup(
         SetFps,
         Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
         MeshMaterial3d(materials.add(diamond_mat.clone())),
-        Transform::from_xyz(-1.318, 0.01, 1.719),
+        Transform::from_xyz(to_local(107.+14.), 0.01, to_local(410.+22.)),
     )).id();
     et.set_fps = Some(set_fps_id);
 

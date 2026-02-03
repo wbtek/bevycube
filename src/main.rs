@@ -22,6 +22,26 @@ struct Ground;
 
 #[derive(Debug, Component)]
 #[require(Transform, Visibility)]
+struct Settings;
+
+#[derive(Debug, Component)]
+#[require(Transform, Visibility)]
+struct SetAnisotropic;
+
+#[derive(Debug, Component)]
+#[require(Transform, Visibility)]
+struct SetMipmaps;
+
+#[derive(Debug, Component)]
+#[require(Transform, Visibility)]
+struct SetResolution;
+
+#[derive(Debug, Component)]
+#[require(Transform, Visibility)]
+struct SetFps;
+
+#[derive(Debug, Component)]
+#[require(Transform, Visibility)]
 struct SafetyDisk;
 
 #[derive(Component)]
@@ -74,6 +94,11 @@ struct EntityTable {
     cube: Option<Entity>,
     disk: Option<Entity>,
     ground: Option<Entity>,
+    settings: Option<Entity>,
+    set_anisotropic: Option<Entity>,
+    set_mipmaps: Option<Entity>,
+    set_resolution: Option<Entity>,
+    set_fps: Option<Entity>,
     safety_disk: Option<Entity>,
     main_anchor: Option<Entity>,
     main_camera: Option<Entity>,
@@ -101,6 +126,7 @@ fn main() {
             embedded_asset!(app, "media/WhiteBearCrab32.jpg");
             embedded_asset!(app, "media/wbtekbg2b512.jpg");
             embedded_asset!(app, "media/settings.jpg");
+            embedded_asset!(app, "media/diamond_sprite.jpg");
         })
         .add_plugins(MeshPickingPlugin)
         .add_systems(Startup, setup)
@@ -236,10 +262,27 @@ fn setup(
     // 4. The Ground
     let ocean_floor_handle = asset_server.load("embedded://bevycube/media/wbtekbg2b512.jpg");
     let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
+    let diamond_handle = asset_server.load("embedded://bevycube/media/diamond_sprite.jpg");
 
     let ocean_floor_mat = StandardMaterial {
         base_color_texture: Some(ocean_floor_handle.clone()),
         alpha_mode: AlphaMode::Opaque,
+        cull_mode: Some(bevy::render::render_resource::Face::Back),
+        ..default()
+    };
+
+    let settings_mat = StandardMaterial {
+        base_color_texture: Some(settings_handle.clone()),
+        alpha_mode: AlphaMode::Add,
+        reflectance: 0.0,
+        cull_mode: Some(bevy::render::render_resource::Face::Back),
+        ..default()
+    };
+
+    let diamond_mat = StandardMaterial {
+        base_color_texture: Some(diamond_handle.clone()),
+        alpha_mode: AlphaMode::Add,
+        reflectance: 0.0,
         cull_mode: Some(bevy::render::render_resource::Face::Back),
         ..default()
     };
@@ -252,22 +295,57 @@ fn setup(
     )).id();
     et.ground = Some(ground_id);
 
-    commands.entity(ground_id)
-    .with_children(|parent| {
-        // Spawn Settings in the lower right (relative to parent)
-        parent.spawn((
-            Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color_texture: Some(settings_handle),
-                alpha_mode: AlphaMode::Add,
-                reflectance: 0.0, // base image already has reflectance
-                ..default()
-            })),
-            // Parent is 20x20, so bounds are -10 to +10.
-            // Center of 5x5 square in corner is at 7.5.
-            Transform::from_xyz(7.5, 0.01, 7.5),
-        ));
-    });
+    let settings_id = commands.spawn((
+        Settings,
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+        MeshMaterial3d(materials.add(settings_mat.clone())),
+        // Parent is 20x20, so bounds are -10 to +10.
+        // Center of 5x5 square in corner is at 7.5.
+        Transform::from_xyz(7.5, 0.01, 7.5),
+    )).id();
+    et.settings = Some(settings_id);
+
+    commands.entity(ground_id).add_child(settings_id);
+
+    let set_anisotropic_id = commands.spawn((
+        SetAnisotropic,
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
+        MeshMaterial3d(materials.add(diamond_mat.clone())),
+        Transform::from_xyz(-1.318, 0.01, -0.918),
+    )).id();
+    et.set_anisotropic = Some(set_anisotropic_id);
+
+    commands.entity(settings_id).add_child(set_anisotropic_id);
+
+    let set_mipmaps_id = commands.spawn((
+        SetMipmaps,
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
+        MeshMaterial3d(materials.add(diamond_mat.clone())),
+        Transform::from_xyz(-1.318, 0.01, -0.039),
+    )).id();
+    et.set_mipmaps = Some(set_mipmaps_id);
+
+    commands.entity(settings_id).add_child(set_mipmaps_id);
+
+    let set_resolution_id = commands.spawn((
+        SetResolution,
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
+        MeshMaterial3d(materials.add(diamond_mat.clone())),
+        Transform::from_xyz(-1.318, 0.01, 0.840),
+    )).id();
+    et.set_resolution = Some(set_resolution_id);
+
+    commands.entity(settings_id).add_child(set_resolution_id);
+
+    let set_fps_id = commands.spawn((
+        SetFps,
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5./16., 5./16.))),
+        MeshMaterial3d(materials.add(diamond_mat.clone())),
+        Transform::from_xyz(-1.318, 0.01, 1.719),
+    )).id();
+    et.set_fps = Some(set_fps_id);
+
+    commands.entity(settings_id).add_child(set_fps_id);
 
     commands.entity(ground_id)
     .observe(|mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {

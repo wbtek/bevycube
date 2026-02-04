@@ -405,13 +405,13 @@ fn setup(
 
     commands.entity(settings_id)
     .observe(move |
-        click: On<Pointer<Click>>,
+        mut click: On<Pointer<Click>>,
         et: Res<EntityTable>,
         mut query: Query<(&mut Settings, &GlobalTransform)>,
         mut diamond_query: Query<&mut Transform, Without<Settings>>,
         // mut cmd: Commands,
     | {
-        let Ok((mut settings, settings_global)) = query.get_mut(click.event_target()) else { return };
+        let Ok((settings, settings_global)) = query.get_mut(click.event_target()) else { return };
 
         if !settings.active { return; }
         if click.duration.as_millis() > 250 { return; }
@@ -430,7 +430,7 @@ fn setup(
                     .map(|(bounds, item)| (&row.cat, item, row.y_top, bounds[0]))
             });
 
-        if let Some((category, item, y_start, x_start)) = clicked_data {
+        if let Some((category, _item, y_start, x_start)) = clicked_data {
             match category {
                 SetCatType::Anisotropic => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_anisotropic.unwrap()) {
@@ -438,6 +438,7 @@ fn setup(
                         let new_z = to_local(y_start as f32 + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
+                    click.propagate(false);
                 },
                 SetCatType::Mipmaps => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_mipmaps.unwrap()) {
@@ -445,6 +446,7 @@ fn setup(
                         let new_z = to_local(y_start as f32 + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
+                    click.propagate(false);
                 },
                 SetCatType::AssetResolution => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_resolution.unwrap()) {
@@ -452,6 +454,7 @@ fn setup(
                         let new_z = to_local(y_start as f32 + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
+                    click.propagate(false);
                 },
                 SetCatType::FPSDisplay => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_fps.unwrap()) {
@@ -459,6 +462,7 @@ fn setup(
                         let new_z = to_local(y_start as f32 + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
+                    click.propagate(false);
                 },
             }
         }

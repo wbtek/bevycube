@@ -20,9 +20,17 @@ struct RotatingDisk;
 #[require(Transform, Visibility)]
 struct Ground;
 
-#[derive(Debug, Component)]
-#[require(Transform, Visibility)]
-struct Settings;
+#[derive(Debug, Component, Reflect)]
+#[reflect(Component)]
+pub struct Settings {
+    pub active: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self { active: true }
+    }
+}
 
 #[derive(Debug, Component)]
 #[require(Transform, Visibility)]
@@ -193,14 +201,7 @@ fn setup(
                 unlit: true,
                 ..default()
             })),
-            // PointLight was here but has problems on some phones.
-            // Gotta fake internal illumination by 2nd inner set of
-            // glowing internal faces below.
         ));
-
-        // How to make .ktx2 (currently these are 256x256):
-        // ktx create --format R8G8B8_SRGB --assign-tf srgb --zstd 20
-        // --generate-mipmap --mipmap-filter kaiser in.png out.ktx2
 
         for (offset, rotation) in face_data {
             parent.spawn((
@@ -296,7 +297,7 @@ fn setup(
     et.ground = Some(ground_id);
 
     let settings_id = commands.spawn((
-        Settings,
+        Settings { active: true },
         Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
         MeshMaterial3d(materials.add(settings_mat.clone())),
         // Parent is 20x20, so bounds are -10 to +10.
@@ -308,6 +309,59 @@ fn setup(
     commands.entity(ground_id).add_child(settings_id);
 
     let to_local = |pixel: f32| (pixel - 256.0) / 512.0 * 5.0;
+    let from_local = |pixel: f32| (pixel / 5.0) * 512.0 + 256.0;
+
+    enum SetCatType {
+        Anisotropic,
+        Mipmaps,
+        AssetResolution,
+        FPSDisplay,
+    }
+
+    enum SetItem {
+        An16, An8, An4, An2, AnOff,
+        MMOn, MMOff,
+        AResHi, AResMed, AResLow,
+        FPSDispOn, FPSDispOff,
+    }
+
+    struct SettingsCategory {
+        cat: SetCatType,
+        y_top: f32,
+        y_bot: f32,
+        x_bounds: Vec<f32>,
+        items: Vec<SetItem>,
+    }
+
+    macro_rules! row {
+        ($c:ident, $y1:expr, $y2:expr,
+        [$($x:expr),*],
+        [$($i:ident),*]) =>
+        {
+            SettingsCategory {
+                cat: SetCatType::$c,
+                y_top: $y1,
+                y_bot: $y2,
+                x_bounds: vec![$($x),*],
+                items: vec![$(SetItem::$i),*],
+            }
+        };
+    }
+
+    let settings_data = [
+        row!( Anisotropic, 140., 185.,
+            [ 107., 166., 215., 263., 310., 387. ],
+            [ An16, An8, An4, An2, AnOff ]),
+        row!( Mipmaps, 230., 275.,
+            [ 107., 177., 255.],
+            [ MMOn, MMOff ]),
+        row!( AssetResolution, 320., 365.,
+            [ 107., 206., 350., 433. ],
+            [ AResHi, AResMed, AResLow ]),
+        row!( FPSDisplay, 410., 455.,
+            [ 107., 177., 255.],
+            [ FPSDispOn, FPSDispOff ])
+    ];
 
     let set_anisotropic_id = commands.spawn((
         SetAnisotropic,
@@ -349,8 +403,69 @@ fn setup(
 
     commands.entity(settings_id).add_child(set_fps_id);
 
+    commands.entity(settings_id)
+    .observe(move |
+        click: On<Pointer<Click>>,
+        et: Res<EntityTable>,
+        mut query: Query<(&mut Settings, &GlobalTransform)>,
+        mut diamond_query: Query<&mut Transform, Without<Settings>>,
+        // mut cmd: Commands,
+    | {
+        let Ok((mut settings, settings_global)) = query.get_mut(click.event_target()) else { return };
+
+        if !settings.active { return; }
+        if click.duration.as_millis() > 250 { return; }
+
+        let Some(hit_pos) = click.hit.position else { return };
+        let local_hit = settings_global.affine().inverse().transform_point3(hit_pos);
+        let px = from_local(local_hit.x);
+        let py = from_local(local_hit.z);
+
+        let clicked_data = settings_data.iter()
+            .find(|row| py >= row.y_top && py <= row.y_bot)
+            .and_then(|row| {
+                row.x_bounds.windows(2)
+                    .zip(row.items.iter())
+                    .find(|(bounds, _)| px >= bounds[0] && px < bounds[1])
+                    .map(|(bounds, item)| (&row.cat, item, row.y_top, bounds[0]))
+            });
+
+        if let Some((category, item, y_start, x_start)) = clicked_data {
+            match category {
+                SetCatType::Anisotropic => {
+                    if let Ok(mut transform) = diamond_query.get_mut(et.set_anisotropic.unwrap()) {
+                        let new_x = to_local(x_start as f32 + 14.0);
+                        let new_z = to_local(y_start as f32 + 22.0);
+                        transform.translation = Vec3::new(new_x, 0.01, new_z);
+                    }
+                },
+                SetCatType::Mipmaps => {
+                    if let Ok(mut transform) = diamond_query.get_mut(et.set_mipmaps.unwrap()) {
+                        let new_x = to_local(x_start as f32 + 14.0);
+                        let new_z = to_local(y_start as f32 + 22.0);
+                        transform.translation = Vec3::new(new_x, 0.01, new_z);
+                    }
+                },
+                SetCatType::AssetResolution => {
+                    if let Ok(mut transform) = diamond_query.get_mut(et.set_resolution.unwrap()) {
+                        let new_x = to_local(x_start as f32 + 14.0);
+                        let new_z = to_local(y_start as f32 + 22.0);
+                        transform.translation = Vec3::new(new_x, 0.01, new_z);
+                    }
+                },
+                SetCatType::FPSDisplay => {
+                    if let Ok(mut transform) = diamond_query.get_mut(et.set_fps.unwrap()) {
+                        let new_x = to_local(x_start as f32 + 14.0);
+                        let new_z = to_local(y_start as f32 + 22.0);
+                        transform.translation = Vec3::new(new_x, 0.01, new_z);
+                    }
+                },
+            }
+        }
+    });
+
     commands.entity(ground_id)
-    .observe(|mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
+    .observe(move |mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
         drag.propagate(false);
         if let Some(mut transform) = et.main_anchor.and_then(|id| query.get_mut(id).ok()) {
             let sensitivity = 0.015;
@@ -645,3 +760,7 @@ fn update_jump(
 }
 // log::info!("Foo: {:#?}", data);
 // panic!("Boo! Did line {} scare ya?!?", line!());
+// if let Some(id) = et.set_anisotropic { cmd.entity(id).insert(Transform::from_xyz(0.0, 0.5, 0.0)); }
+        // How to make .ktx2 (currently these are 256x256):
+        // ktx create --format R8G8B8_SRGB --assign-tf srgb --zstd 20
+        // --generate-mipmap --mipmap-filter kaiser in.png out.ktx2

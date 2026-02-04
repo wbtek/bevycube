@@ -1,0 +1,78 @@
+instructions
+settings
+  auto or manual performance
+    resolution
+    mipmaping
+    anisotropic filtering
+  auto or manual viewport size
+    read from window system / browser
+  aspect ratio (flops for portrait/landscape)
+update frames per second
+mipmap
+  shitty code, not understandable
+  can one mipmap have handles to start at different resolutions?
+  can it be set dynamically?
+anisotropic filtering
+=  wtf is it?
+  cpu performance vs levels
+  effect vs resolution
+  can it be set dynamically?
+WBTekify
+License
+Github
+
+Ocean waves calm around anchor, radiating from anchor
+
+
+140 - 185
+230 - 275
+320 - 365
+410 - 455
+
+107 166         215     263 310     387
+107     177         255
+107         206                 350     433
+107     177         255
+
+category opt1 opt2 ...
+y-y': x1 x2 x2 ...
+
+anisotropic 16 8 4 2 off
+140-185: 107 166 215 263 310 387
+
+mipmaps on off
+230-275: 107 177 255
+
+asset_resolution high medium low
+320-365: 107 206 350 433
+
+FPS_display on off
+410-455: 107 177 255
+
+---
+or listed individually with ranges:
+
+anisotropic 140-185
+16: 107-166
+8: 166-215
+4: 215-263
+2: 263-310
+off: 310-387
+
+Mipmaps 230-275
+on: 107-177
+off: 177-255
+
+Asset resolution 320-365
+high: 107-206
+medium: 206-350
+low: 350-433
+
+Frames per second display 410-455
+on: 107-177
+off: 177-255
+
+First diamond center:
+121,162
+22 below top
+14 right of left

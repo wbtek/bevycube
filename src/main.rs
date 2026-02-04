@@ -421,6 +421,7 @@ fn setup(
     .observe(move |
         mut click: On<Pointer<Click>>,
         et: Res<EntityTable>,
+        stitched: Option<Res<StitchedRoundel>>,
         mut query: Query<(&mut Settings, &GlobalTransform)>,
         mut diamond_query: Query<&mut Transform, Without<Settings>>,
         mut images: ResMut<Assets<Image>>,
@@ -446,6 +447,8 @@ fn setup(
             });
 
         if let Some((category, item, y_start, x_start)) = clicked_data {
+            let Some(ref stitched_res) = stitched else { return };
+            let target_handle = &stitched_res.handle;
             match category {
                 SetCatType::Anisotropic => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_anisotropic.unwrap()) {
@@ -454,7 +457,7 @@ fn setup(
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
 
-                    if let Some(img) = images.get_mut(&roundel_handle) {
+                    if let Some(img) = images.get_mut(target_handle) {
                         let mut is_desc = match img.sampler.clone(){
                             ImageSampler::Descriptor(d) => d,
                             _ => ImageSamplerDescriptor::default(),
@@ -493,7 +496,7 @@ fn setup(
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
 
-                    if let Some(img) = images.get_mut(&roundel_handle) {
+                    if let Some(img) = images.get_mut(target_handle) {
                         let mut is_desc = match img.sampler.clone(){
                             ImageSampler::Descriptor(d) => d,
                             _ => ImageSamplerDescriptor::default(),
@@ -529,7 +532,7 @@ fn setup(
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
 
-                    if let Some(img) = images.get_mut(&roundel_handle) {
+                    if let Some(img) = images.get_mut(target_handle) {
                         let mut is_desc = match img.sampler.clone(){
                             ImageSampler::Descriptor(d) => d,
                             _ => ImageSamplerDescriptor::default(),

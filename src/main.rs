@@ -3,6 +3,8 @@ use bevy::prelude::EaseFunction::{ ElasticInOut, BounceInOut };
 use bevy::asset::AssetMetaCheck;
 use bevy::math::Affine2;
 use bevy::asset::embedded_asset;
+use bevy::render::render_resource::*;
+use bevy::image::*;
 
 // --- Components ---
 
@@ -80,6 +82,16 @@ struct JumpData {
 
 // --- Resources ---
 
+#[derive(Resource)]
+struct StitchedRoundel {
+    handle: Handle<Image>,
+}
+
+// #[derive(Debug, Resource)]
+// struct ImageTable {
+//     roundel_handle: Handle<Image>,
+// }
+
 #[derive(Debug, Resource)]
 struct RoundelMipmapLoading {
     // [512, 256, 128, 64, 32]
@@ -149,9 +161,11 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
     mut et: ResMut<EntityTable>,
+//    mut it: ResMut<ImageTable>,
 ) {
 
     let roundel_handle = asset_server.load("embedded://bevycube/media/WhiteBearCrab64.jpg"); // swapped later
+//    it.roundel_handle = roundel_handle.clone();
     let roundel_mat = StandardMaterial {
         base_color_texture: Some(roundel_handle.clone()),
         alpha_mode: AlphaMode::Opaque,
@@ -409,6 +423,7 @@ fn setup(
         et: Res<EntityTable>,
         mut query: Query<(&mut Settings, &GlobalTransform)>,
         mut diamond_query: Query<&mut Transform, Without<Settings>>,
+        mut images: ResMut<Assets<Image>>,
         // mut cmd: Commands,
     | {
         let Ok((settings, settings_global)) = query.get_mut(click.event_target()) else { return };
@@ -430,36 +445,111 @@ fn setup(
                     .map(|(bounds, item)| (&row.cat, item, row.y_top, bounds[0]))
             });
 
-        if let Some((category, _item, y_start, x_start)) = clicked_data {
+        if let Some((category, item, y_start, x_start)) = clicked_data {
             match category {
                 SetCatType::Anisotropic => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_anisotropic.unwrap()) {
-                        let new_x = to_local(x_start as f32 + 14.0);
-                        let new_z = to_local(y_start as f32 + 22.0);
+                        let new_x = to_local(x_start + 14.0);
+                        let new_z = to_local(y_start + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
+                    }
+
+                    if let Some(img) = images.get_mut(&roundel_handle) {
+                        let mut is_desc = match img.sampler.clone(){
+                            ImageSampler::Descriptor(d) => d,
+                            _ => ImageSamplerDescriptor::default(),
+                        };
+
+                        is_desc.anisotropy_clamp = match item {
+                            SetItem::An16 => 16,
+                            SetItem::An8 => 8,
+                            SetItem::An4 => 4,
+                            SetItem::An2 => 2,
+                            SetItem::AnOff => 1,
+                            _ => 1
+                        };
+
+                        if is_desc.anisotropy_clamp > 1 { // On
+                            is_desc.mipmap_filter = ImageFilterMode::Linear;
+                            is_desc.mag_filter = ImageFilterMode::Linear;
+                            is_desc.min_filter = ImageFilterMode::Linear;
+
+                            if let Ok(mut mip_transform) = diamond_query.get_mut(et.set_mipmaps.unwrap()) {
+                                let new_x = to_local(107. + 14.0);
+                                let new_z = to_local(230. + 22.0);
+                                mip_transform.translation = Vec3::new(new_x, 0.01, new_z);
+                            }
+                        }
+
+
+                        img.sampler = ImageSampler::Descriptor(is_desc);
                     }
                     click.propagate(false);
                 },
                 SetCatType::Mipmaps => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_mipmaps.unwrap()) {
-                        let new_x = to_local(x_start as f32 + 14.0);
-                        let new_z = to_local(y_start as f32 + 22.0);
+                        let new_x = to_local(x_start + 14.0);
+                        let new_z = to_local(y_start + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
+                    }
+
+                    if let Some(img) = images.get_mut(&roundel_handle) {
+                        let mut is_desc = match img.sampler.clone(){
+                            ImageSampler::Descriptor(d) => d,
+                            _ => ImageSamplerDescriptor::default(),
+                        };
+
+                        is_desc.mipmap_filter = match item {
+                            SetItem::MMOn => ImageFilterMode::Linear,
+                            // find way to turn it off...
+                            SetItem::MMOff => ImageFilterMode::Linear,
+                            _ => ImageFilterMode::Linear
+                        };
+
+                        if is_desc.mipmap_filter == ImageFilterMode::Linear {
+                            is_desc.mag_filter = ImageFilterMode::Linear;
+                            is_desc.min_filter = ImageFilterMode::Linear;
+                            is_desc.anisotropy_clamp = 1;
+
+                            if let Ok(mut aniso_transform) = diamond_query.get_mut(et.set_anisotropic.unwrap()) {
+                                let new_x = to_local(310. + 14.0);
+                                let new_z = to_local(140. + 22.0);
+                                aniso_transform.translation = Vec3::new(new_x, 0.01, new_z);
+                            }
+                        }
+
+                        img.sampler = ImageSampler::Descriptor(is_desc);
                     }
                     click.propagate(false);
                 },
                 SetCatType::AssetResolution => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_resolution.unwrap()) {
-                        let new_x = to_local(x_start as f32 + 14.0);
-                        let new_z = to_local(y_start as f32 + 22.0);
+                        let new_x = to_local(x_start + 14.0);
+                        let new_z = to_local(y_start + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
+                    }
+
+                    if let Some(img) = images.get_mut(&roundel_handle) {
+                        let mut is_desc = match img.sampler.clone(){
+                            ImageSampler::Descriptor(d) => d,
+                            _ => ImageSamplerDescriptor::default(),
+                        };
+
+                        is_desc.lod_min_clamp = match item {
+                            SetItem::AResHi => 0.,
+                            SetItem::AResMed => 1.,
+                            SetItem::AResLow => 2.,
+                            _ => 3.
+                        };
+
+                        img.sampler = ImageSampler::Descriptor(is_desc);
                     }
                     click.propagate(false);
                 },
                 SetCatType::FPSDisplay => {
                     if let Ok(mut transform) = diamond_query.get_mut(et.set_fps.unwrap()) {
-                        let new_x = to_local(x_start as f32 + 14.0);
-                        let new_z = to_local(y_start as f32 + 22.0);
+                        let new_x = to_local(x_start + 14.0);
+                        let new_z = to_local(y_start + 22.0);
                         transform.translation = Vec3::new(new_x, 0.01, new_z);
                     }
                     click.propagate(false);
@@ -624,25 +714,26 @@ fn stitch_roundel_system(
         let stitched_image = Image {
             // 2. Wrap the final Vec in Some()
             data: Some(combined_data),
-            texture_descriptor: bevy::render::render_resource::TextureDescriptor {
+            texture_descriptor: TextureDescriptor {
                 label: Some("stitched_roundel"),
-                size: bevy::render::render_resource::Extent3d {
+                size: Extent3d {
                     width: 512,
                     height: 512,
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: mip_count,
                 sample_count: 1,
-                dimension: bevy::render::render_resource::TextureDimension::D2,
+                dimension: TextureDimension::D2,
                 format: detected_format,
-                usage: bevy::render::render_resource::TextureUsages::TEXTURE_BINDING | bevy::render::render_resource::TextureUsages::COPY_DST,
+                usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
                 view_formats: &[],
             },
-            sampler: bevy::image::ImageSampler::Descriptor(bevy::image::ImageSamplerDescriptor {
-                mipmap_filter: bevy::image::ImageFilterMode::Linear,
-                mag_filter: bevy::image::ImageFilterMode::Linear,
-                min_filter: bevy::image::ImageFilterMode::Linear,
+            sampler: ImageSampler::Descriptor(ImageSamplerDescriptor {
+                mipmap_filter: ImageFilterMode::Linear,
+                mag_filter: ImageFilterMode::Linear,
+                min_filter: ImageFilterMode::Linear,
                 anisotropy_clamp: 16,
+                // anisotropy_clamp: 1, // ddt
                 ..default()
             }),
             ..default()
@@ -657,6 +748,11 @@ fn stitch_roundel_system(
                 }
             }
         }
+
+// Store the handle so other systems can find it
+commands.insert_resource(StitchedRoundel {
+    handle: final_handle.clone(),
+});
 
         commands.remove_resource::<RoundelMipmapLoading>();
     }
@@ -695,8 +791,10 @@ fn update_jump(
     mut commands: Commands,
     time: Res<Time>,
     et: Res<EntityTable>,
+//    it: Res<ImageTable>,
     target_query: Query<&GlobalTransform>,
     mut cube_query: Query<(&mut Transform, &mut JumpData)>,
+//    mut images: ResMut<Assets<Image>>,
 ) {
     let Some(cube_entity) = et.cube else { return };
     let Ok((mut transform, mut data)) = cube_query.get_mut(cube_entity) else { return };
@@ -728,6 +826,13 @@ fn update_jump(
             bounce_height = 0.;
             let yaw_angle = 2.0 * std::f32::consts::PI * t;
             transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw_angle);
+            {
+//// Inside a system AFTER the stitching is done
+//if let Some(stitched_img) = images.get(&it.roundel_handle) {
+//    log::info!("GPU Descriptor Mips: {}", stitched_img.texture_descriptor.mip_level_count);
+//    log::info!("Data Buffer Length: {}", stitched_img.data.as_ref().map(|d| d.len()).unwrap_or(0));
+//}
+            }
         }
         AnimationType::Spin => {
             bounce_height = 0.;
@@ -762,6 +867,19 @@ fn update_jump(
         commands.entity(cube_entity).remove::<JumpData>();
     }
 }
+
+fn debug_roundel_system(
+    roundel: Option<Res<StitchedRoundel>>, // Use Option in case it hasn't stitched yet
+    images: Res<Assets<Image>>,
+) {
+    if let Some(roundel) = roundel {
+        if let Some(img) = images.get(&roundel.handle) {
+            log::info!("Actual Mip Levels: {}", img.texture_descriptor.mip_level_count);
+            // This is where you can verify if it says 5 or 1
+        }
+    }
+}
+
 // log::info!("Foo: {:#?}", data);
 // panic!("Boo! Did line {} scare ya?!?", line!());
 // if let Some(id) = et.set_anisotropic { cmd.entity(id).insert(Transform::from_xyz(0.0, 0.5, 0.0)); }

@@ -138,10 +138,18 @@ pub fn spawn_settings_ui(
                         transform.translation = Vec3::new(to_local(x_start + 14.0), 0.01, to_local(y_start + 22.0));
                     }
                     if let Some(img) = images.get_mut(target_handle) {
-                        let is_desc = match img.sampler.clone() { ImageSampler::Descriptor(d) => d, _ => ImageSamplerDescriptor::default() };
-                        if let Ok(mut aniso_transform) = diamond_query.get_mut(et.set_anisotropic.unwrap()) {
-                            aniso_transform.translation = Vec3::new(to_local(310. + 14.0), 0.01, to_local(140. + 22.0));
-                        }
+                        let mut is_desc = match img.sampler.clone() { ImageSampler::Descriptor(d) => d, _ => ImageSamplerDescriptor::default() };
+                        is_desc.mipmap_filter = match item {
+                            SetItem::MMOn => ImageFilterMode::Linear,
+                            SetItem::MMOff => {
+                                is_desc.anisotropy_clamp = 1;
+                                if let Ok(mut aniso_transform) = diamond_query.get_mut(et.set_anisotropic.unwrap()) {
+                                    aniso_transform.translation = Vec3::new(to_local(310. + 14.0), 0.01, to_local(140. + 22.0));
+                                }
+                                ImageFilterMode::Linear
+                            },
+                            _ => ImageFilterMode::Linear
+                        };
                         img.sampler = ImageSampler::Descriptor(is_desc);
                         for (_, mat) in materials.iter_mut() {
                             if mat.base_color_texture.as_ref().map(|h| h.id() == target_handle.id()).unwrap_or(false) { mat.base_color_texture = Some(target_handle.clone()); }

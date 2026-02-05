@@ -1,16 +1,22 @@
-pub mod ui;
 pub mod camera;
 pub mod roundel;
+pub mod ui;
 pub mod world;
 
 use crate::roundel::*;
 
-use bevy::prelude::*;
 use bevy::asset::embedded_asset;
 use bevy::image::*;
+use bevy::prelude::*;
 
-#[derive(Debug, Resource)] pub struct DiskParms { pub rotation_speed: f32 }
-#[derive(Debug, Resource)] pub struct CubeParms { pub rotation_speed: f32 }
+#[derive(Debug, Resource)]
+pub struct DiskParms {
+    pub rotation_speed: f32,
+}
+#[derive(Debug, Resource)]
+pub struct CubeParms {
+    pub rotation_speed: f32,
+}
 
 #[derive(Debug, Resource, Default)]
 pub struct EntityTable {
@@ -35,4 +41,3 @@ impl Plugin for DemoAssetsPlugin {
         embedded_asset!(app, "media/diamond_sprite.jpg");
     }
 }
-

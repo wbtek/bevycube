@@ -1,8 +1,8 @@
+use bevy::asset::embedded_asset;
+use bevy::image::*;
+use bevy::math::Affine2;
 use bevy::prelude::*;
 use bevy::render::render_resource::*;
-use bevy::asset::embedded_asset;
-use bevy::math::Affine2;
-use bevy::image::*;
 
 pub struct RoundelPlugin;
 
@@ -13,7 +13,7 @@ impl Plugin for RoundelPlugin {
         embedded_asset!(app, "media/WhiteBearCrab128.jpg");
         embedded_asset!(app, "media/WhiteBearCrab64.jpg");
         embedded_asset!(app, "media/WhiteBearCrab32.jpg");
-        
+
         app.add_systems(Update, stitch_roundel_system);
     }
 }
@@ -29,7 +29,7 @@ pub struct RoundelMipmapLoading {
     pub target_handle: Handle<Image>,
 }
 
-/// Returns the standard material configuration used for the Roundel faces.
+// Returns the standard material configuration used for the Roundel faces.
 pub fn get_roundel_material(handle: Handle<Image>) -> StandardMaterial {
     StandardMaterial {
         base_color_texture: Some(handle),
@@ -51,19 +51,29 @@ fn stitch_roundel_system(
     let Some(loading) = loading else { return };
     if loading.handles.iter().all(|h| images.get(h).is_some()) {
         let mut combined_data = Vec::new();
-        let format = images.get(&loading.handles[0]).unwrap().texture_descriptor.format;
-        
+        let format = images
+            .get(&loading.handles[0])
+            .unwrap()
+            .texture_descriptor
+            .format;
+
         for h in &loading.handles {
             if let Some(ref data) = images.get(h).unwrap().data {
                 combined_data.extend_from_slice(data);
-            } else { return; }
+            } else {
+                return;
+            }
         }
 
         let final_handle = images.add(Image {
             data: Some(combined_data),
             texture_descriptor: TextureDescriptor {
                 label: Some("stitched_roundel"),
-                size: Extent3d { width: 512, height: 512, depth_or_array_layers: 1 },
+                size: Extent3d {
+                    width: 512,
+                    height: 512,
+                    depth_or_array_layers: 1,
+                },
                 mip_level_count: loading.handles.len() as u32,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
@@ -90,7 +100,9 @@ fn stitch_roundel_system(
             }
         }
 
-        commands.insert_resource(StitchedRoundel { handle: final_handle });
+        commands.insert_resource(StitchedRoundel {
+            handle: final_handle,
+        });
         commands.remove_resource::<RoundelMipmapLoading>();
     }
 }

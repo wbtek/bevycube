@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::asset::AssetMetaCheck;
+use bevy::prelude::*;
 
 use bevycube::*;
 
@@ -9,8 +9,12 @@ fn main() {
 
     App::new()
         .init_resource::<EntityTable>()
-        .insert_resource(DiskParms { rotation_speed: 0.2 })
-        .insert_resource(CubeParms { rotation_speed: -1.0 })
+        .insert_resource(DiskParms {
+            rotation_speed: 0.2,
+        })
+        .insert_resource(CubeParms {
+            rotation_speed: -1.0,
+        })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             meta_check: AssetMetaCheck::Never,
             ..default()

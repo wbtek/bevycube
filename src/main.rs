@@ -425,6 +425,7 @@ fn setup(
         mut query: Query<(&mut Settings, &GlobalTransform)>,
         mut diamond_query: Query<&mut Transform, Without<Settings>>,
         mut images: ResMut<Assets<Image>>,
+        mut materials: ResMut<Assets<StandardMaterial>>,
         // mut cmd: Commands,
     | {
         let Ok((settings, settings_global)) = query.get_mut(click.event_target()) else { return };
@@ -486,6 +487,11 @@ fn setup(
 
 
                         img.sampler = ImageSampler::Descriptor(is_desc);
+                        for (_, mut mat) in materials.iter_mut() {
+                            if mat.base_color_texture.as_ref().map(|h|
+                                h.id() == target_handle.id()).unwrap_or(false) {
+                                    mat.base_color_texture = Some(target_handle.clone());
+                        }}
                     }
                     click.propagate(false);
                 },
@@ -522,6 +528,11 @@ fn setup(
                         }
 
                         img.sampler = ImageSampler::Descriptor(is_desc);
+                        for (_, mut mat) in materials.iter_mut() {
+                            if mat.base_color_texture.as_ref().map(|h|
+                                h.id() == target_handle.id()).unwrap_or(false) {
+                                    mat.base_color_texture = Some(target_handle.clone());
+                        }}
                     }
                     click.propagate(false);
                 },
@@ -546,6 +557,11 @@ fn setup(
                         };
 
                         img.sampler = ImageSampler::Descriptor(is_desc);
+                        for (_, mut mat) in materials.iter_mut() {
+                            if mat.base_color_texture.as_ref().map(|h|
+                                h.id() == target_handle.id()).unwrap_or(false) {
+                                    mat.base_color_texture = Some(target_handle.clone());
+                        }}
                     }
                     click.propagate(false);
                 },

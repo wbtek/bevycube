@@ -20,7 +20,7 @@ fn main() {
             DemoAssetsPlugin,
             PlayerPlugin,
             EnvironmentPlugin,
-            CameraPlugin,
+            camera::CameraPlugin,
             ui::SettingsUiPlugin,
         ))
         .run();

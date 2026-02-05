@@ -1,5 +1,8 @@
 pub mod ui;
+pub mod camera;
+
 use crate::ui::*;
+// use crate::camera::*;
 
 use bevy::prelude::*;
 use bevy::prelude::EaseFunction::{ ElasticInOut, BounceInOut };
@@ -110,13 +113,6 @@ impl Plugin for EnvironmentPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
            .add_systems(Update, (rotate_disk, debug_roundel_system));
-    }
-}
-
-pub struct CameraPlugin;
-impl Plugin for CameraPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, (update_camera_zoom, update_mobile_zoom));
     }
 }
 
@@ -319,28 +315,6 @@ fn setup(
     let camera_id = commands.spawn(( MainCamera, Camera3d::default(), Projection::Perspective(PerspectiveProjection::default()), Transform::from_xyz(0.0, 7.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y) )).id();
     et.main_camera = Some(camera_id);
     commands.entity(anchor_id).add_child(camera_id);
-}
-
-fn update_camera_zoom(mut mouse_wheel: MessageReader<bevy::input::mouse::MouseWheel>, et: Res<EntityTable>, mut query: Query<&mut Transform>) {
-    if let Some(mut transform) = et.main_camera.and_then(|id| query.get_mut(id).ok()) {
-        for event in mouse_wheel.read() {
-            let zoom_amount = event.y * 0.005;
-            transform.translation.z = (transform.translation.z - zoom_amount).clamp(0.01, 40.0);
-            transform.look_at(Vec3::ZERO, Vec3::Y);
-        }
-    }
-}
-
-fn update_mobile_zoom(touches: Res<bevy::input::touch::Touches>, et: Res<EntityTable>, mut query: Query<&mut Transform>) {
-    let active: Vec<_> = touches.iter().collect();
-    if active.len() != 2 { return; }
-    if let Some(mut transform) = et.main_camera.and_then(|id| query.get_mut(id).ok()) {
-        let pinch_delta = active[0].position().distance(active[1].position()) - active[0].previous_position().distance(active[1].previous_position());
-        if pinch_delta.abs() > 0.1 {
-            transform.translation.z = (transform.translation.z - pinch_delta * 0.05).clamp(0.01, 40.0);
-            transform.look_at(Vec3::ZERO, Vec3::Y);
-        }
-    }
 }
 
 fn stitch_roundel_system(mut commands: Commands, loading: Option<Res<RoundelMipmapLoading>>, mut images: ResMut<Assets<Image>>, mut materials: ResMut<Assets<StandardMaterial>>) {

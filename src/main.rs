@@ -18,6 +18,7 @@ fn main() {
         .add_plugins(MeshPickingPlugin)
         .add_plugins((
             DemoAssetsPlugin,
+            roundel::RoundelPlugin,
             PlayerPlugin,
             EnvironmentPlugin,
             camera::CameraPlugin,

@@ -1,14 +1,14 @@
 pub mod ui;
 pub mod camera;
+pub mod roundel;
 
 use crate::ui::*;
 // use crate::camera::*;
+use crate::roundel::*;
 
 use bevy::prelude::*;
 use bevy::prelude::EaseFunction::{ ElasticInOut, BounceInOut };
-use bevy::math::Affine2;
 use bevy::asset::embedded_asset;
-use bevy::render::render_resource::*;
 use bevy::image::*;
 
 // ==========================================
@@ -52,17 +52,6 @@ struct JumpData {
     animation: Option<AnimationType>,
 }
 
-#[derive(Resource)]
-struct StitchedRoundel {
-    handle: Handle<Image>,
-}
-
-#[derive(Debug, Resource)]
-struct RoundelMipmapLoading {
-    handles: [Handle<Image>; 5],
-    target_handle: Handle<Image>,
-}
-
 #[derive(Debug, Resource)] pub struct DiskParms { pub rotation_speed: f32 }
 #[derive(Debug, Resource)] pub struct CubeParms { pub rotation_speed: f32 }
 
@@ -88,15 +77,9 @@ pub struct EntityTable {
 pub struct DemoAssetsPlugin;
 impl Plugin for DemoAssetsPlugin {
     fn build(&self, app: &mut App) {
-        embedded_asset!(app, "media/WhiteBearCrab512.jpg");
-        embedded_asset!(app, "media/WhiteBearCrab256.jpg");
-        embedded_asset!(app, "media/WhiteBearCrab128.jpg");
-        embedded_asset!(app, "media/WhiteBearCrab64.jpg");
-        embedded_asset!(app, "media/WhiteBearCrab32.jpg");
         embedded_asset!(app, "media/wbtekbg2b512.jpg");
         embedded_asset!(app, "media/settings.jpg");
         embedded_asset!(app, "media/diamond_sprite.jpg");
-        app.add_systems(Update, stitch_roundel_system);
     }
 }
 
@@ -128,6 +111,8 @@ fn setup(
     mut et: ResMut<EntityTable>,
 ) {
     let roundel_handle = asset_server.load("embedded://bevycube/media/WhiteBearCrab64.jpg");
+    let roundel_mat = roundel::get_roundel_material(roundel_handle.clone());
+/*
     let roundel_mat = StandardMaterial {
         base_color_texture: Some(roundel_handle.clone()),
         alpha_mode: AlphaMode::Opaque,
@@ -137,6 +122,7 @@ fn setup(
             cull_mode: Some(bevy::render::render_resource::Face::Back),
         ..default()
     };
+*/
 
     let handles = [
         asset_server.load("embedded://bevycube/media/WhiteBearCrab512.jpg"),
@@ -147,7 +133,8 @@ fn setup(
     ];
     commands.insert_resource(RoundelMipmapLoading {
         handles,
-        target_handle: roundel_handle.clone(),
+        // target_handle: roundel_handle.clone(),
+        target_handle: roundel_handle,
     });
 
     let cube_id = commands.spawn((
@@ -315,23 +302,6 @@ fn setup(
     let camera_id = commands.spawn(( MainCamera, Camera3d::default(), Projection::Perspective(PerspectiveProjection::default()), Transform::from_xyz(0.0, 7.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y) )).id();
     et.main_camera = Some(camera_id);
     commands.entity(anchor_id).add_child(camera_id);
-}
-
-fn stitch_roundel_system(mut commands: Commands, loading: Option<Res<RoundelMipmapLoading>>, mut images: ResMut<Assets<Image>>, mut materials: ResMut<Assets<StandardMaterial>>) {
-    let Some(loading) = loading else { return };
-    if loading.handles.iter().all(|h| images.get(h).is_some()) {
-        let mut combined_data = Vec::new();
-        let format = images.get(&loading.handles[0]).unwrap().texture_descriptor.format;
-        for h in &loading.handles { if let Some(ref data) = images.get(h).unwrap().data { combined_data.extend_from_slice(data); } else { return; } }
-        let final_handle = images.add(Image {
-            data: Some(combined_data),
-            texture_descriptor: TextureDescriptor { label: Some("stitched"), size: Extent3d { width: 512, height: 512, depth_or_array_layers: 1 }, mip_level_count: loading.handles.len() as u32, sample_count: 1, dimension: TextureDimension::D2, format, usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST, view_formats: &[] },
-            sampler: ImageSampler::Descriptor(ImageSamplerDescriptor { mipmap_filter: ImageFilterMode::Linear, mag_filter: ImageFilterMode::Linear, min_filter: ImageFilterMode::Linear, anisotropy_clamp: 16, ..default() }), ..default()
-        });
-        for (_, mat) in materials.iter_mut() { if let Some(ref tex) = mat.base_color_texture { if tex.id() == loading.target_handle.id() { mat.base_color_texture = Some(final_handle.clone()); } } }
-        commands.insert_resource(StitchedRoundel { handle: final_handle });
-        commands.remove_resource::<RoundelMipmapLoading>();
-    }
 }
 
 fn rotate_cube(et: Res<EntityTable>, mut query: Query<(&mut Transform, &GlobalTransform)>, settings: Res<CubeParms>, time: Res<Time>) {

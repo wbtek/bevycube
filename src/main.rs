@@ -19,8 +19,7 @@ fn main() {
         .add_plugins((
             DemoAssetsPlugin,
             roundel::RoundelPlugin,
-            PlayerPlugin,
-            EnvironmentPlugin,
+            world::WorldPlugin,
             camera::CameraPlugin,
             ui::SettingsUiPlugin,
         ))

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::EntityTable; //
+use crate::EntityTable;
 
 pub struct CameraPlugin;
 

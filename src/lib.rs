@@ -1,3 +1,6 @@
+pub mod ui;
+use crate::ui::*;
+
 use bevy::prelude::*;
 use bevy::prelude::EaseFunction::{ ElasticInOut, BounceInOut };
 use bevy::math::Affine2;
@@ -23,22 +26,6 @@ struct RotatingDisk;
 #[require(Transform, Visibility)]
 struct Ground;
 
-#[derive(Debug, Component, Reflect)]
-#[reflect(Component)]
-pub struct Settings {
-    pub active: bool,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self { active: true }
-    }
-}
-
-#[derive(Debug, Component)] #[require(Transform, Visibility)] struct SetAnisotropic;
-#[derive(Debug, Component)] #[require(Transform, Visibility)] struct SetMipmaps;
-#[derive(Debug, Component)] #[require(Transform, Visibility)] struct SetResolution;
-#[derive(Debug, Component)] #[require(Transform, Visibility)] struct SetFps;
 #[derive(Debug, Component)] #[require(Transform, Visibility)] struct SafetyDisk;
 #[derive(Component)] #[require(Transform, Visibility)] struct CameraAnchor;
 #[derive(Component)] struct MainCamera;
@@ -130,13 +117,6 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, (update_camera_zoom, update_mobile_zoom));
-    }
-}
-
-pub struct SettingsUiPlugin;
-impl Plugin for SettingsUiPlugin {
-    fn build(&self, app: &mut App) {
-        app.register_type::<Settings>();
     }
 }
 
@@ -288,9 +268,6 @@ fn setup(
     )).id();
     et.settings = Some(settings_id);
     commands.entity(ground_id).add_child(settings_id);
-
-    let to_local = |pixel: f32| (pixel - 256.0) / 512.0 * 5.0;
-    let from_local = |pixel: f32| (pixel / 5.0) * 512.0 + 256.0;
 
     enum SetCatType { Anisotropic, Mipmaps, AssetResolution, FPSDisplay }
     enum SetItem { An16, An8, An4, An2, AnOff, MMOn, MMOff, AResHi, AResMed, AResLow, FPSDispOn, FPSDispOff }

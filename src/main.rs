@@ -21,7 +21,7 @@ fn main() {
             PlayerPlugin,
             EnvironmentPlugin,
             CameraPlugin,
-            SettingsUiPlugin,
+            ui::SettingsUiPlugin,
         ))
         .run();
 }

@@ -1,4 +1,4 @@
-use crate::{camera::*, roundel, ui::Settings, CubeParms, DiskParms, EntityTable};
+use crate::{camera::*, roundel, CubeParms, DiskParms, EntityTable};
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
 use bevy::prelude::*;
 
@@ -191,23 +191,6 @@ pub fn setup(
         ))
         .id();
     et.ground = Some(ground_id);
-
-    let settings_id = commands
-        .spawn((
-            Settings { active: true },
-            Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color_texture: Some(settings_handle.clone()),
-                alpha_mode: AlphaMode::Add,
-                reflectance: 0.0,
-                perceptual_roughness: 1.0,
-                ..default()
-            })),
-            Transform::from_xyz(7.5, 0.01, 7.5),
-        ))
-        .id();
-    et.settings = Some(settings_id);
-    commands.entity(ground_id).add_child(settings_id);
 
     // Observers
     commands.entity(ground_id).observe(

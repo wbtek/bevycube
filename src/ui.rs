@@ -56,8 +56,8 @@ pub fn spawn_settings_ui(
             Transform::from_xyz(7.5, 0.01, 7.5),
         ))
         .id();
-
     et.settings = Some(settings_id);
+
     commands.entity(ground_id).add_child(settings_id);
 
     macro_rules! row {
@@ -74,7 +74,13 @@ pub fn spawn_settings_ui(
             [107., 166., 215., 263., 310., 387.],
             [An16, An8, An4, An2, AnOff]
         ),
-        row!(Mipmaps, 230., 275., [107., 177., 255.], [MMOn, MMOff]),
+        row!(
+            Mipmaps, /* rustfmt */
+            230.,
+            275.,
+            [107., 177., 255.],
+            [MMOn, MMOff]
+        ),
         row!(
             AssetResolution,
             320.,

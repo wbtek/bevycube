@@ -21,11 +21,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{camera::*, roundel, DiskParms, EntityTable, OceanBuffer};
+use crate::{camera::*, roundel, EntityTable, OceanBuffer};
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 
 pub mod cube;
+pub mod disk;
 pub mod ground;
 
 // --- Components ---
@@ -67,7 +68,7 @@ impl Plugin for WorldPlugin {
                 Update,
                 (
                     cube::rotate_cube,
-                    rotate_disk,
+                    disk::rotate_disk,
                     cube::update_jump,
                     // simulate_waves,
                     apply_camera_repulsion,
@@ -111,21 +112,12 @@ pub fn setup(
     );
 
     // Disk Spawning
-    let disk_id = commands
-        .spawn((
-            RotatingDisk,
-            Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
-            MeshMaterial3d(materials.add(roundel_mat.clone())),
-            Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        ))
-        .id();
-    et.disk = Some(disk_id);
-
-    commands.entity(disk_id).observe(
-        |mut drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
-            drag.propagate(false);
-            settings.rotation_speed += drag.delta.x * 0.001;
-        },
+    let disk_id = disk::spawn_rotating_disk(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        roundel_mat.clone(),
+        &mut et,
     );
 
     let safety_id = commands
@@ -258,17 +250,6 @@ pub fn setup(
         .observe(cube::handle_jump_request);
     commands.entity(ocean_id).observe(cube::handle_jump_request);
     commands.entity(disk_id).observe(cube::handle_jump_request);
-}
-
-fn rotate_disk(
-    et: Res<EntityTable>,
-    mut query: Query<&mut Transform>,
-    time: Res<Time>,
-    settings: Res<DiskParms>,
-) {
-    if let Some(mut transform) = et.disk.and_then(|id| query.get_mut(id).ok()) {
-        transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
-    }
 }
 
 fn apply_camera_repulsion(

@@ -21,32 +21,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{camera::*, roundel, EntityTable};
+use crate::{roundel, EntityTable};
 use bevy::prelude::*;
 
+pub mod camera;
 pub mod cube;
 pub mod disk;
 pub mod ground;
 pub mod ocean;
-
-// --- Components ---
-#[derive(Debug, Component, Default, Reflect)]
-#[reflect(Component)]
-#[require(Transform, Visibility)]
-pub struct RotatingCube;
-
-#[derive(Debug, Component, Default, Reflect)]
-#[reflect(Component)]
-#[require(Transform, Visibility)]
-pub struct RotatingDisk;
-
-#[derive(Debug, Component)]
-#[require(Transform, Visibility)]
-pub struct Ground;
-
-#[derive(Debug, Component)]
-#[require(Transform, Visibility)]
-pub struct Ocean;
 
 #[derive(Debug, Component)]
 #[require(Transform, Visibility)]
@@ -62,7 +44,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
         app.add_systems(FixedUpdate, ocean::simulate_waves);
-        app.register_type::<RotatingCube>()
+        app.register_type::<cube::RotatingCube>()
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
@@ -200,19 +182,7 @@ pub fn setup(
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
 
-    let anchor_id = commands.spawn((CameraAnchor, Transform::IDENTITY)).id();
-    et.main_anchor = Some(anchor_id);
-
-    let camera_id = commands
-        .spawn((
-            MainCamera,
-            Camera3d::default(),
-            Projection::Perspective(PerspectiveProjection::default()),
-            Transform::from_xyz(0.0, 7.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ))
-        .id();
-    et.main_camera = Some(camera_id);
-    commands.entity(anchor_id).add_child(camera_id);
+    camera::spawn_camera(&mut commands, &mut et);
 
     commands
         .entity(ground_id)

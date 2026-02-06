@@ -35,7 +35,6 @@ impl Plugin for CameraPlugin {
 #[derive(Component)]
 #[require(Transform, Visibility)]
 pub struct CameraAnchor;
-
 #[derive(Component)]
 pub struct MainCamera;
 

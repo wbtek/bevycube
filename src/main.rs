@@ -47,7 +47,7 @@ fn main() {
             DemoAssetsPlugin,
             roundel::RoundelPlugin,
             world::WorldPlugin,
-            camera::CameraPlugin,
+            world::camera::CameraPlugin,
             ui::SettingsUiPlugin,
         ))
         .run();

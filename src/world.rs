@@ -1,4 +1,3 @@
-
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -22,7 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{camera::*, roundel, CubeParms, DiskParms, EntityTable};
+use crate::{camera::*, roundel, CubeParms, DiskParms, EntityTable, OceanBuffer};
+use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
 use bevy::prelude::*;
 
@@ -43,7 +43,15 @@ pub struct Ground;
 
 #[derive(Debug, Component)]
 #[require(Transform, Visibility)]
+pub struct Ocean;
+
+#[derive(Debug, Component)]
+#[require(Transform, Visibility)]
 pub struct SafetyDisk;
+
+#[derive(Debug, Component)]
+#[require(Transform, Visibility)]
+pub struct SafetyDiskHidden;
 
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub enum AnimationType {
@@ -68,9 +76,22 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
+        app.add_systems(FixedUpdate, simulate_waves);
         app.register_type::<RotatingCube>()
             .add_systems(Startup, setup)
-            .add_systems(Update, (rotate_cube, rotate_disk, update_jump));
+            .add_systems(
+                Update,
+                (
+                    rotate_cube,
+                    rotate_disk,
+                    update_jump,
+                    // simulate_waves,
+                    apply_camera_repulsion,
+                    update_ocean_mesh,
+                )
+                    .chain(),
+            );
     }
 }
 
@@ -192,11 +213,22 @@ pub fn setup(
             SafetyDisk,
             Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
             MeshMaterial3d(materials.add(Color::srgb(0.5, 0.25, 0.0))),
-            Transform::from_xyz(0.0, -0.49, 0.0)
+            // Transform::from_xyz(0.0, -0.49, 0.0)
+            Transform::from_xyz(0.0, -0.99, 0.0)
                 .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
         ))
         .id();
     et.safety_disk = Some(safety_id);
+
+    let safety_hidden_id = commands
+        .spawn((
+            SafetyDiskHidden,
+            Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
+            Transform::from_xyz(0.0, -0.01, 0.0)
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        ))
+        .id();
+    et.safety_disk_hidden = Some(safety_hidden_id);
 
     // Ground and Environment
     let ocean_floor_handle = asset_server.load("embedded://bevycube/media/wbtekbg2b512.jpg");
@@ -211,10 +243,33 @@ pub fn setup(
                 base_color_texture: Some(ocean_floor_handle),
                 ..default()
             })),
-            Transform::from_xyz(0.0, -0.5, 0.0),
+            // Transform::from_xyz(0.0, -0.5, 0.0),
+            Transform::from_xyz(0.0, -1.0, 0.0),
         ))
         .id();
     et.ground = Some(ground_id);
+
+    let grid_size = 12;
+    commands.insert_resource(OceanBuffer::new(grid_size));
+
+    let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10);
+
+    let ocean_id = commands
+        .spawn((
+            Ocean,
+            Mesh3d(meshes.add(ocean_mesh)),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgba(0.0, 0.3, 0.6, 0.4), // Sea blue, 40% opaque
+                alpha_mode: AlphaMode::Blend,
+                perceptual_roughness: 0.08, // Shiny surface
+                metallic: 0.2,
+                ..default()
+            })),
+            // Transform::from_xyz(0.0, -0.25, 0.0),
+            Transform::from_xyz(0.0, -0.25, 0.0),
+        ))
+        .id();
+    et.ocean = Some(ocean_id);
 
     // Observers
     commands.entity(ground_id).observe(
@@ -255,8 +310,11 @@ pub fn setup(
         let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
         if target_entity == disk_id {
             local_target.z += 1.0;
-        } else {
+        } else if target_entity == ground_id {
             local_target.y += 1.0;
+        } else if target_entity == ocean_id {
+            // local_target.y += 0.75;
+            local_target.y += 0.25;
         }
 
         commands.entity(cube_entity).remove_parent_in_place();
@@ -270,9 +328,6 @@ pub fn setup(
             animation: None,
         });
     };
-
-    commands.entity(ground_id).observe(jump_observer.clone());
-    commands.entity(disk_id).observe(jump_observer);
 
     crate::ui::spawn_settings_ui(
         &mut commands,
@@ -298,6 +353,22 @@ pub fn setup(
             shadows_enabled: true,
             ..default()
         },
+        Transform::from_xyz(-7.0, 10.0, -7.0),
+    ));
+
+    commands.spawn((
+        PointLight {
+            shadows_enabled: true,
+            ..default()
+        },
+        Transform::from_xyz(7.0, 10.0, -7.0),
+    ));
+
+    commands.spawn((
+        PointLight {
+            shadows_enabled: true,
+            ..default()
+        },
         Transform::from_xyz(4.0, 8.0, 4.0),
     ));
 
@@ -314,6 +385,20 @@ pub fn setup(
         .id();
     et.main_camera = Some(camera_id);
     commands.entity(anchor_id).add_child(camera_id);
+
+    commands.entity(ocean_id).observe(
+        |mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
+            drag.propagate(false);
+            if let Some(mut transform) = et.main_anchor.and_then(|id| query.get_mut(id).ok()) {
+                transform.translation.x -= drag.delta.x * 0.015;
+                transform.translation.z -= drag.delta.y * 0.015;
+            }
+        },
+    );
+
+    commands.entity(ground_id).observe(jump_observer.clone());
+    commands.entity(ocean_id).observe(jump_observer.clone());
+    commands.entity(disk_id).observe(jump_observer);
 }
 
 fn rotate_cube(
@@ -348,6 +433,7 @@ fn update_jump(
     mut commands: Commands,
     time: Res<Time>,
     et: Res<EntityTable>,
+    mut water: ResMut<OceanBuffer>,
     target_query: Query<&GlobalTransform>,
     mut cube_query: Query<(&mut Transform, &mut JumpData)>,
 ) {
@@ -408,17 +494,135 @@ fn update_jump(
             } else {
                 transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw);
             }
+            let world_pos = transform.translation;
+            water.splash(world_pos.x, world_pos.z, 1.0, 1.0);
         }
     }
     transform.scale = Vec3::splat((2. * (0.5 - t).abs()).clamp(0.5, 1.));
     transform.translation = target_global
         .transform_point(local_start.lerp(data.local_target, elastic_t))
         + Vec3::new(0., bounce_height, 0.);
+
     if t >= 1. {
         transform.scale = Vec3::splat(1.);
+
+        let world_pos = transform.translation;
+        water.splash(world_pos.x, world_pos.z, 2.0, 2.0);
+
         commands
             .entity(cube_entity)
             .set_parent_in_place(data.target_entity);
         commands.entity(cube_entity).remove::<JumpData>();
+    }
+}
+
+fn apply_camera_repulsion(
+    mut water: ResMut<OceanBuffer>,
+    et: Res<EntityTable>,
+    global_transforms: Query<&GlobalTransform>,
+) {
+    let (Some(cam_id), Some(anchor_id)) = (et.main_camera, et.main_anchor) else {
+        return;
+    };
+
+    // Get world positions
+    let Ok(cam_gtf) = global_transforms.get(cam_id) else {
+        return;
+    };
+    let Ok(anchor_gtf) = global_transforms.get(anchor_id) else {
+        return;
+    };
+
+    let cam_pos = cam_gtf.translation();
+    let anchor_pos = anchor_gtf.translation();
+
+    // Calculate 3D distance for the "zoom" level
+    let dist = cam_pos.distance(anchor_pos);
+
+    // radius grows as distance shrinks (15.0 is your start dist)
+    let repulsion_radius = ((15.0 - dist) / 15.0 * 6.0).max(0.0);
+    let r_sq = repulsion_radius * repulsion_radius;
+
+    // Depth: Sink below ground (-0.5) when close
+    // let push_depth = ((15.0 - dist) / 15.0 * -0.6).min(0.0);
+    let push_depth = ((15.0 - dist) / 15.0 * -2.0).min(0.0);
+
+    let size = water.size;
+    let step = 2.0;
+    let anchor_xz = anchor_pos.xz();
+
+    for z in 1..size - 1 {
+        for x in 1..size - 1 {
+            let i = z * size + x;
+            let w_pos = Vec2::new((x as f32 * step) - 10.0, (z as f32 * step) - 10.0);
+
+            if w_pos.distance_squared(anchor_xz) < r_sq {
+                water.current[i] = push_depth;
+            }
+        }
+    }
+}
+
+fn simulate_waves(
+    mut water: ResMut<OceanBuffer>,
+    et: Res<EntityTable>,
+    global_transforms: Query<&GlobalTransform>,
+) {
+    let Some(disk_id) = et.disk else { return };
+    let Ok(disk_gtf) = global_transforms.get(disk_id) else {
+        return;
+    };
+    let disk_xz = disk_gtf.translation().xz();
+
+    let size = water.size;
+    for z in 1..size - 1 {
+        for x in 1..size - 1 {
+            let i = z * size + x;
+            let w_pos = Vec2::new((x as f32 * 2.0) - 10.0, (z as f32 * 2.0) - 10.0);
+
+            // Mirror boundary at Disk radius (4.0)
+            if w_pos.distance_squared(disk_xz) < 16.5 {
+                water.previous[i] = 0.0;
+                continue;
+            }
+
+            // let avg = (water.current[i-1] + water.current[i+1] +
+            //            water.current[i-size] + water.current[i+size]) / 4.0;
+            let avg = (water.current[i - size - 1]
+                + water.current[i - size]
+                + water.current[i - size + 1]
+                + water.current[i - 1]
+                + water.current[i]
+                + water.current[i + 1]
+                + water.current[i + size - 1]
+                + water.current[i + size]
+                + water.current[i + size + 1])
+                / 9.0;
+
+            water.previous[i] = (avg * 2.0 - water.previous[i]) * 0.98;
+        }
+    }
+    water.swap();
+}
+
+fn update_ocean_mesh(
+    water: Res<OceanBuffer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    query: Query<&Mesh3d, With<Ocean>>,
+) {
+    // A loop is the most robust way to avoid the get_single/single drama
+    for mesh_3d in &query {
+        if let Some(mesh) = meshes.get_mut(&mesh_3d.0) {
+            if let Some(VertexAttributeValues::Float32x3(pos)) =
+                mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION)
+            {
+                for (i, p) in pos.iter_mut().enumerate() {
+                    // Safety check to ensure we don't overflow the buffer
+                    if i < water.current.len() {
+                        p[1] = water.current[i];
+                    }
+                }
+            }
+        }
     }
 }

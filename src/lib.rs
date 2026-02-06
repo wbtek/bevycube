@@ -1,4 +1,3 @@
-
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -53,8 +52,10 @@ pub struct EntityTable {
     pub set_resolution: Option<Entity>,
     pub set_fps: Option<Entity>,
     pub safety_disk: Option<Entity>,
+    pub safety_disk_hidden: Option<Entity>,
     pub main_anchor: Option<Entity>,
     pub main_camera: Option<Entity>,
+    pub ocean: Option<Entity>,
 }
 
 pub struct DemoAssetsPlugin;
@@ -63,5 +64,53 @@ impl Plugin for DemoAssetsPlugin {
         embedded_asset!(app, "media/wbtekbg2b512.jpg");
         embedded_asset!(app, "media/settings.jpg");
         embedded_asset!(app, "media/diamond_sprite.jpg");
+    }
+}
+
+#[derive(Resource)]
+pub struct OceanBuffer {
+    pub current: Vec<f32>,
+    pub previous: Vec<f32>,
+    pub size: usize,
+}
+
+impl OceanBuffer {
+    pub fn new(size: usize) -> Self {
+        let count = size * size;
+        Self {
+            current: vec![0.0; count],
+            previous: vec![0.0; count],
+            size,
+        }
+    }
+
+    pub fn swap(&mut self) {
+        std::mem::swap(&mut self.current, &mut self.previous);
+    }
+
+    /// Injects a vertical displacement at a specific world coordinate.
+    /// x, z: World coordinates (-10 to 10)
+    /// magnitude: Height of the splash (e.g., 0.5)
+    /// diameter: How many vertices are affected (e.g., 1.0)
+    pub fn splash(&mut self, x: f32, z: f32, magnitude: f32, diameter: f32) {
+        let size = self.size as f32;
+        let spacing = 20.0 / (size - 1.0);
+        let r_sq = (diameter / 2.0).powi(2);
+
+        for row in 0..self.size {
+            for col in 0..self.size {
+                let i = row * self.size + col;
+                let vx = (col as f32 * spacing) - 10.0;
+                let vz = (row as f32 * spacing) - 10.0;
+
+                let dist_sq = (vx - x).powi(2) + (vz - z).powi(2);
+                if dist_sq < r_sq {
+                    // We add to current so it doesn't "snap" back instantly
+                    // A smooth falloff makes the splash look less "blocky"
+                    let falloff = 1.0 - (dist_sq / r_sq).sqrt();
+                    self.current[i] += magnitude * falloff;
+                }
+            }
+        }
     }
 }

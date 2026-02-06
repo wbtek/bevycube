@@ -10,216 +10,26 @@ settings
 update frames per second
 mipmap
   shitty code, not understandable
-  can one mipmap have handles to start at different resolutions?
-  can it be set dynamically?
-anisotropic filtering
-=  wtf is it?
-  cpu performance vs levels
-  effect vs resolution
-  can it be set dynamically?
 WBTekify
 Refactor
-License
 Github
 
 Ocean waves calm around anchor, radiating from anchor
 Ocean
   waves radiate from cube, disk, anchor
   repulsed by camera proximit to below the floor
-
-src/
-├── main.rs              # App entry, high-level plugin registration
-├── camera/
-│   ├── mod.rs           # CameraPlugin, State (Push/Pop logic)
-│   └── systems.rs       # Movement, anchoring, transitions
-├── environment/
-│   ├── mod.rs           # EnvironmentPlugin
-│   ├── ocean.rs         # Water shaders/mesh/physics
-│   └── sky.rs           # (Optional) Lighting/Atmosphere
-├── player/
-│   ├── mod.rs           # PlayerPlugin (Your Cube logic)
-│   └── systems.rs       # Input handling for the cube
-└── ui/
-    ├── mod.rs           # UiPlugin
-    ├── billboard.rs     # World-space instructions
-    └── radial_menu.rs   # Right-click/Long-press logic
-
-140 - 185
-230 - 275
-320 - 365
-410 - 455
-
-107 166         215     263 310     387
-107     177         255
-107         206                 350     433
-107     177         255
-
-category opt1 opt2 ...
-y-y': x1 x2 x2 ...
-
-anisotropic 16 8 4 2 off
-140-185: 107 166 215 263 310 387
-
-mipmaps on off
-230-275: 107 177 255
-
-asset_resolution high medium low
-320-365: 107 206 350 433
-
-FPS_display on off
-410-455: 107 177 255
-
----
-or listed individually with ranges:
-
-anisotropic 140-185
-16: 107-166
-8: 166-215
-4: 215-263
-2: 263-310
-off: 310-387
-
-Mipmaps 230-275
-on: 107-177
-off: 177-255
-
-Asset resolution 320-365
-high: 107-206
-medium: 206-350
-low: 350-433
-
-Frames per second display 410-455
-on: 107-177
-off: 177-255
-
-First diamond center:
-121,162
-22 below top
-14 right of left
-
-
-    let to_local = |pixel: f32| (pixel - 256.0) / 512.0 * 5.0;
-
-
-
-------------------
-
-SetCatType::Anisotropic => {
-    // ... your diamond movement code ...
-    if let Some(image) = images.get_mut(&roundel_handle) {
-        image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
-            anisotropy_clamp: match _item { SetItem::An16 => 16, SetItem::An8 => 8, _ => 1 },
-            ..default()
-        });
-    }
-},
-SetCatType::Mipmaps => {
-    // ... your diamond movement code ...
-    if let Some(image) = images.get_mut(&roundel_handle) {
-        image.texture_view_descriptor = Some(TextureViewDescriptor {
-            // Some(1) forces the GPU to only see the top mip (effectively Off)
-            mip_level_count: if _item == SetItem::MipOn { None } else { Some(1) },
-            ..image.texture_view_descriptor.clone().unwrap_or_default()
-        });
-    }
-},
-SetCatType::AssetResolution => {
-    // ... your diamond movement code ...
-    if let Some(image) = images.get_mut(&roundel_handle) {
-        image.texture_view_descriptor = Some(TextureViewDescriptor {
-            base_mip_level: match _item { SetItem::AResHi => 0, SetItem::AResMed => 1, SetItem::AResLow => 2, _ => 0 },
-            ..image.texture_view_descriptor.clone().unwrap_or_default()
-        });
-    }
-},
-
---------------------
-
-match category {
-    SetCatType::Anisotropic => {
-        // ... (Keep your diamond movement code)
-        if let Some(image) = images.get_mut(&roundel_handle) {
-            image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
-                anisotropy_clamp: match _item { 
-                    SetItem::An16 => 16, SetItem::An8 => 8, SetItem::An4 => 4, SetItem::An2 => 2, _ => 1 
-                },
-                ..default()
-            });
-        }
-    },
-    SetCatType::Mipmaps => {
-        // ... (Keep your diamond movement code)
-        if let Some(image) = images.get_mut(&roundel_handle) {
-            // FIX: Use .unwrap_or_default() and explicitly set mip_level_count
-            let mut desc = image.texture_view_descriptor.clone().unwrap_or_default();
-            desc.mip_level_count = if _item == SetItem::MMOn { None } else { Some(1) };
-            image.texture_view_descriptor = Some(desc);
-        }
-    },
-    SetCatType::AssetResolution => {
-        // ... (Keep your diamond movement code)
-        if let Some(image) = images.get_mut(&roundel_handle) {
-            let mut desc = image.texture_view_descriptor.clone().unwrap_or_default();
-            desc.base_mip_level = match _item { 
-                SetItem::AResHi => 0, SetItem::AResMed => 1, SetItem::AResLow => 2, _ => 0 
-            };
-            // FIX: Ensure mip_level_count is never 0
-            if desc.mip_level_count == Some(0) { desc.mip_level_count = None; }
-            image.texture_view_descriptor = Some(desc);
-        }
-    },
-    _ => {}
-}
-
-
------------------
-
-
-SetCatType::AssetResolution => {
-    // ... (Your diamond movement code stays exactly as it is) ...
-
-    if let Some(image) = images.get_mut(&roundel_handle) {
-        // Get the current descriptor or start with a valid default
-        let mut desc = image.texture_view_descriptor.clone().unwrap_or_default();
-        
-        // 1. Set the new level
-        desc.base_mip_level = match _item { 
-            SetItem::AResHi => 0, 
-            SetItem::AResMed => 1, 
-            SetItem::AResLow => 2, 
-            _ => 0 
-        };
-
-        // 2. CRITICAL FIX: Ensure count is never 0. 
-        // None means "use all available levels from base_mip_level down".
-        desc.mip_level_count = None;
-
-        image.texture_view_descriptor = Some(desc);
-    }
-    click.propagate(false);
-},
-
----------------
-wgpu error: Validation Error
-
-Caused by:
-  In Texture::create_view
-    TextureView mip level count + base mip level 2 must be <= Texture mip level count 1
-
----------------
-
-    let settings_data = [
-        row!( Anisotropic, 140., 185.,
-            [ 107., 166., 215., 263., 310., 387. ],
-            [ An16, An8, An4, An2, AnOff ]),
-        row!( Mipmaps, 230., 275.,
-            [ 107., 177., 255.],
-            [ MMOn, MMOff ]),
-        row!( AssetResolution, 320., 365.,
-            [ 107., 206., 350., 433. ],
-            [ AResHi, AResMed, AResLow ]),
-        row!( FPSDisplay, 410., 455.,
-            [ 107., 177., 255.],
-            [ FPSDispOn, FPSDispOff ])
-    ];
---------
+----
+make edges of wave tank either be fixed or wrap to other side
+consider whether to lighten observers
+consider whether to impl important entities
+  cube ocean ground disk
+make wavetank more robust
+make wavetank deeper so it looks better
+make radial menu
+make anchor/camera push and pop to important locations
+interact with screen size
+fps and milliseconds per frame display
+mipmap can't be turned of this way
+  find out how to do it
+Does this way of changing resolution increase performance?
+Can resolution of viewport be changed?

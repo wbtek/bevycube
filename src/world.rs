@@ -26,6 +26,7 @@ use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 
 pub mod cube;
+pub mod ground;
 
 // --- Components ---
 #[derive(Debug, Component, Default, Reflect)]
@@ -101,7 +102,7 @@ pub fn setup(
     });
 
     // Cube Spawning
-    cube::spawn_rotating_cube(
+    let _cube_id = cube::spawn_rotating_cube(
         &mut commands,
         &mut meshes,
         &mut materials,
@@ -154,20 +155,6 @@ pub fn setup(
     let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
     let diamond_handle = asset_server.load("embedded://bevycube/media/diamond_sprite.jpg");
 
-    let ground_id = commands
-        .spawn((
-            Ground,
-            Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color_texture: Some(ocean_floor_handle),
-                ..default()
-            })),
-            // Transform::from_xyz(0.0, -0.5, 0.0),
-            Transform::from_xyz(0.0, -1.0, 0.0),
-        ))
-        .id();
-    et.ground = Some(ground_id);
-
     let grid_size = 12;
     commands.insert_resource(OceanBuffer::new(grid_size));
 
@@ -190,17 +177,15 @@ pub fn setup(
         .id();
     et.ocean = Some(ocean_id);
 
-    // Observers
-    commands.entity(ground_id).observe(
-        |mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
-            drag.propagate(false);
-            if let Some(mut transform) = et.main_anchor.and_then(|id| query.get_mut(id).ok()) {
-                transform.translation.x -= drag.delta.x * 0.015;
-                transform.translation.z -= drag.delta.y * 0.015;
-            }
-        },
+    let ground_id = ground::spawn_ground(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        ocean_floor_handle,
+        &mut et,
     );
 
+    // Observers
     crate::ui::spawn_settings_ui(
         &mut commands,
         &mut meshes,

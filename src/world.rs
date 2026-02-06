@@ -28,6 +28,7 @@ pub mod camera;
 pub mod cube;
 pub mod disk;
 pub mod ground;
+pub mod lights;
 pub mod ocean;
 
 #[derive(Debug, Component)]
@@ -158,31 +159,9 @@ pub fn setup(
         &mut et,
     );
 
-    commands.spawn((
-        PointLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(-7.0, 10.0, -7.0),
-    ));
-
-    commands.spawn((
-        PointLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(7.0, 10.0, -7.0),
-    ));
-
-    commands.spawn((
-        PointLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(4.0, 8.0, 4.0),
-    ));
-
     camera::spawn_camera(&mut commands, &mut et);
+
+    lights::spawn_lights(&mut commands);
 
     commands
         .entity(ground_id)

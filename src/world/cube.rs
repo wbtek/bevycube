@@ -164,14 +164,13 @@ pub fn handle_jump_request(
 
     let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
 
-    if Some(target_entity) == et.disk {
-        local_target.z += 1.0;
+    if Some(target_entity) == et.ocean {
+        local_target.y += 0.25;
     } else {
-        if Some(target_entity) == et.ground {
-            local_target.y += 1.0;
-        } else if Some(target_entity) == et.ocean {
-            local_target.y += 0.25;
-        }
+        local_target.y += 1.;
+    }
+
+    if Some(target_entity) != et.disk {
         local_target = local_target
             .xz()
             .clamp_length_min(5.4)

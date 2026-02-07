@@ -36,14 +36,22 @@ pub fn spawn_rotating_disk(
     roundel_mat: StandardMaterial,
     et: &mut ResMut<EntityTable>,
 ) -> Entity {
+    let mesh = Circle::new(4.0)
+        .mesh()
+        .resolution(128)
+        .build()
+        .rotated_by(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
+
     let disk_id = commands
         .spawn((
             RotatingDisk,
-            Mesh3d(meshes.add(Circle::new(4.0).mesh().resolution(128))),
+            Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(materials.add(roundel_mat)),
-            Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            // 3. Transform is now default (Y is Up!)
+            Transform::IDENTITY,
         ))
         .id();
+
     et.disk = Some(disk_id);
 
     commands.entity(disk_id).observe(
@@ -63,6 +71,6 @@ pub fn rotate_disk(
     settings: Res<DiskParms>,
 ) {
     if let Some(mut transform) = et.disk.and_then(|id| query.get_mut(id).ok()) {
-        transform.rotate_local_z(settings.rotation_speed * time.delta_secs());
+        transform.rotate_local_y(settings.rotation_speed * time.delta_secs());
     }
 }

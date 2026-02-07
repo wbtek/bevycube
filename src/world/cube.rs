@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 use crate::{CubeParms, EntityTable, OceanBuffer};
+use bevy::ecs::relationship::Relationship;
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
 use bevy::prelude::*;
 
@@ -165,7 +166,7 @@ pub fn handle_jump_request(
     let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
 
     if Some(target_entity) == et.ocean {
-        local_target.y += 0.25;
+        local_target.y += 0.33;
     } else {
         local_target.y += 1.;
     }
@@ -265,11 +266,11 @@ pub fn update_jump(
                 transform.rotation = data.start_rotation
                     * Quat::from_rotation_y(yaw)
                     * Quat::from_rotation_x(4. * std::f32::consts::PI * (t - 0.0909) * 1.2222);
+                let world_pos = transform.translation;
+                water.splash(world_pos.x, world_pos.z, 1.0, 1.0);
             } else {
                 transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw);
             }
-            let world_pos = transform.translation;
-            water.splash(world_pos.x, world_pos.z, 1.0, 1.0);
         }
     }
     transform.scale = Vec3::splat((2. * (0.5 - t).abs()).clamp(0.5, 1.));
@@ -287,5 +288,30 @@ pub fn update_jump(
             .entity(cube_entity)
             .set_parent_in_place(data.target_entity);
         commands.entity(cube_entity).remove::<JumpData>();
+    }
+}
+
+pub fn apply_buoyancy(
+    et: Res<EntityTable>,
+    water: Res<OceanBuffer>,
+    mut query: Query<&mut Transform, (With<RotatingCube>, Without<JumpData>)>,
+    parent_query: Query<&ChildOf>,
+) {
+    let (Some(cube_id), Some(ocean_id)) = (et.cube, et.ocean) else {
+        return;
+    };
+
+    if let Ok(mut transform) = query.get_mut(cube_id) {
+        if let Ok(parent) = parent_query.get(cube_id) {
+            if parent.get() == ocean_id {
+                let x = transform.translation.x;
+                let z = transform.translation.z;
+
+                let surface_y = water.get_height(x, z) + 0.33;
+
+                transform.translation.y =
+                    transform.translation.y + (surface_y - transform.translation.y) * 0.25;
+            }
+        }
     }
 }

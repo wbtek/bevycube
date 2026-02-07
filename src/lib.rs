@@ -112,4 +112,17 @@ impl OceanBuffer {
             }
         }
     }
+
+    pub fn get_height(&self, x: f32, z: f32) -> f32 {
+        let size = self.size as f32;
+
+        let col = ((x + 10.0) / 20.0 * (size - 1.0))
+            .round()
+            .clamp(0.0, size - 1.0) as usize;
+        let row = ((z + 10.0) / 20.0 * (size - 1.0))
+            .round()
+            .clamp(0.0, size - 1.0) as usize;
+
+        self.current[row * self.size + col]
+    }
 }

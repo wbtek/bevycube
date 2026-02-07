@@ -316,13 +316,14 @@ pub fn apply_buoyancy(
                 if surface_y < -0.75 || transform.translation.y < 0.25 {
                     transform.translation.y = 0.25;
                 } else {
-                    transform.translation.y = (transform.translation.y
-                        + (surface_y - (transform.translation.y - 0.50)) * 0.25)
-                        .max(0.25);
-                    transform.translation.x +=
-                        (water.get_height(x - 1., z) - water.get_height(x + 1., z)) / 3.;
-                    transform.translation.z +=
-                        (water.get_height(x, z - 1.) - water.get_height(x, z + 1.)) / 3.;
+                    let mut proposed = transform.translation;
+                    proposed.y = (proposed.y + (surface_y - (proposed.y - 0.50)) * 0.25).max(0.25);
+                    proposed.x += (water.get_height(x - 1., z) - water.get_height(x + 1., z)) / 3.;
+                    proposed.z += (water.get_height(x, z - 1.) - water.get_height(x, z + 1.)) / 3.;
+
+                    proposed = proposed.xz().clamp_length_min(5.4).extend(proposed.y).xzy();
+
+                    transform.translation = proposed;
                 }
             }
         }

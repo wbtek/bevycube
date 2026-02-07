@@ -102,28 +102,6 @@ pub fn setup(
         &mut et,
     );
 
-    let safety_id = commands
-        .spawn((
-            SafetyDisk,
-            Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
-            MeshMaterial3d(materials.add(Color::srgb(0.5, 0.25, 0.0))),
-            // Transform::from_xyz(0.0, -0.49, 0.0)
-            Transform::from_xyz(0.0, -0.99, 0.0)
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        ))
-        .id();
-    et.safety_disk = Some(safety_id);
-
-    let safety_hidden_id = commands
-        .spawn((
-            SafetyDiskHidden,
-            Mesh3d(meshes.add(Circle::new(5.4).mesh().resolution(128))),
-            Transform::from_xyz(0.0, -0.01, 0.0)
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        ))
-        .id();
-    et.safety_disk_hidden = Some(safety_hidden_id);
-
     // Ground and Environment
     let ocean_floor_handle = asset_server.load("embedded://bevycube/media/wbtekbg2b512.jpg");
     let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
@@ -139,7 +117,6 @@ pub fn setup(
         &mut et,
     );
 
-    // Observers
     crate::ui::spawn_settings_ui(
         &mut commands,
         &mut meshes,

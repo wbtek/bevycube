@@ -19,12 +19,10 @@ Ocean
   waves radiate from cube, disk, anchor
   repulsed by camera proximit to below the floor
 ----
-make edges of wave tank either be fixed or wrap to other side
-consider whether to lighten observers
+
+consider whether to lighten work done by observers
 consider whether to impl important entities
   cube ocean ground disk
-make wavetank more robust
-make wavetank deeper so it looks better
 make radial menu
 make anchor/camera push and pop to important locations
 interact with screen size
@@ -33,3 +31,41 @@ mipmap can't be turned of this way
   find out how to do it
 Does this way of changing resolution increase performance?
 Can resolution of viewport be changed?
+PingPongBubbles
+Make cube jump height adjust for obstacles?
+Spawn a backdrop so reflections on water can be seen
+
+Wavetank (ocean)
+  make edges of wave tank either be fixed or wrap to other side <<<------
+  make wavetank more robust
+  make wavetank deeper so it looks better
+  float stuff on water to make surface more visible
+
+
+
+survface_y < 0.0, transform.translate.7 = 0.23 visible
+
+
+
+disk = 0
+ground = -1
+water = -0.25
+water - ground = 0.75
+bottom of cube = -1.00 (-0.99)
+
+ground - cube_bottom = 0.01, -0.25 = -0.24
+
+water = -0.25
+water value of -0.74 should be seen as water.
+water value of 0.75 would be 0.5 taller than disk
+
+water + 0.50 would put cube 1/4 in water with only 0.25 under it
+water + 0.75 would put cube 1/8 in water with only 0.50 under it.
+
+With cube:
+  parented to water at -0.25
+  offset by 0.50 so only 1/4 wet
+  the bottom of the cube will rest on the ground if:
+    water is -0.25
+  this puts the cube coords parented to water at:
+    0.25

@@ -98,7 +98,7 @@ pub fn spawn_settings_ui(
             [An16, An8, An4, An2, AnOff]
         ),
         row!(
-            Mipmaps, /* rustfmt */
+            Mipmaps, //
             230.,
             275.,
             [107., 177., 255.],

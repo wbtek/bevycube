@@ -67,10 +67,12 @@ pub fn spawn_rotating_disk(
 pub fn rotate_disk(
     et: Res<EntityTable>,
     mut query: Query<&mut Transform>,
-    time: Res<Time>,
     settings: Res<DiskParms>,
+    time: Res<Time>,
 ) {
-    if let Some(mut transform) = et.disk.and_then(|id| query.get_mut(id).ok()) {
-        transform.rotate_local_y(settings.rotation_speed * time.delta_secs());
+    if let Some(id) = et.disk {
+        if let Ok(mut transform) = query.get_mut(id) {
+            transform.rotate_local_y(settings.rotation_speed * time.delta_secs());
+        }
     }
 }

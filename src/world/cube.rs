@@ -192,17 +192,13 @@ pub fn handle_jump_request(
 
 pub fn rotate_cube(
     et: Res<EntityTable>,
-    mut query: Query<(&mut Transform, &GlobalTransform)>,
+    mut query: Query<&mut Transform>,
     settings: Res<CubeParms>,
     time: Res<Time>,
 ) {
     if let Some(id) = et.cube {
-        if let Ok((mut transform, global)) = query.get_mut(id) {
-            let local_up = global.affine().inverse().transform_vector3(Vec3::Y);
-            transform.rotate_local_axis(
-                Dir3::new_unchecked(local_up.normalize()),
-                settings.rotation_speed * time.delta_secs(),
-            );
+        if let Ok(mut transform) = query.get_mut(id) {
+            transform.rotate_local_y(settings.rotation_speed * time.delta_secs());
         }
     }
 }

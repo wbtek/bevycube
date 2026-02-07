@@ -295,22 +295,35 @@ pub fn apply_buoyancy(
     et: Res<EntityTable>,
     water: Res<OceanBuffer>,
     mut query: Query<&mut Transform, (With<RotatingCube>, Without<JumpData>)>,
+    transform_query: Query<&Transform, Without<RotatingCube>>,
     parent_query: Query<&ChildOf>,
 ) {
-    let (Some(cube_id), Some(ocean_id)) = (et.cube, et.ocean) else {
+    let (Some(cube_id), Some(ocean_id), Some(ground_id)) = (et.cube, et.ocean, et.ground) else {
         return;
     };
-
+    let ground_y = transform_query
+        .get(ground_id)
+        .map(|t| t.translation.y)
+        .unwrap_or(0.0);
     if let Ok(mut transform) = query.get_mut(cube_id) {
         if let Ok(parent) = parent_query.get(cube_id) {
             if parent.get() == ocean_id {
                 let x = transform.translation.x;
                 let z = transform.translation.z;
 
-                let surface_y = water.get_height(x, z) + 0.33;
-
-                transform.translation.y =
-                    transform.translation.y + (surface_y - transform.translation.y) * 0.25;
+                let surface_y = water.get_height(x, z);
+                // if surface_y < ground_y {
+                if surface_y < -0.75 || transform.translation.y < 0.25 {
+                    transform.translation.y = 0.25;
+                } else {
+                    transform.translation.y = (transform.translation.y
+                        + (surface_y - (transform.translation.y - 0.50)) * 0.25)
+                        .max(0.25);
+                    transform.translation.x +=
+                        (water.get_height(x - 1., z) - water.get_height(x + 1., z)) / 3.;
+                    transform.translation.z +=
+                        (water.get_height(x, z - 1.) - water.get_height(x, z + 1.)) / 3.;
+                }
             }
         }
     }

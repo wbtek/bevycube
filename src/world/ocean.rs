@@ -21,9 +21,65 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{EntityTable, OceanBuffer};
+use crate::EntityTable;
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
+
+#[derive(Resource)]
+pub struct OceanBuffer {
+    pub current: Vec<f32>,
+    pub previous: Vec<f32>,
+    pub size: usize,
+}
+
+impl OceanBuffer {
+    pub fn new(size: usize) -> Self {
+        let count = size * size;
+        Self {
+            current: vec![0.0; count],
+            previous: vec![0.0; count],
+            size,
+        }
+    }
+
+    pub fn swap(&mut self) {
+        std::mem::swap(&mut self.current, &mut self.previous);
+    }
+
+    /// Injects a vertical displacement at a specific world coordinate.
+    pub fn splash(&mut self, x: f32, z: f32, magnitude: f32, diameter: f32) {
+        let size = self.size as f32;
+        let spacing = 20.0 / (size - 1.0);
+        let r_sq = (diameter / 2.0).powi(2);
+
+        for row in 0..self.size {
+            for col in 0..self.size {
+                let i = row * self.size + col;
+                let vx = (col as f32 * spacing) - 10.0;
+                let vz = (row as f32 * spacing) - 10.0;
+
+                let dist_sq = (vx - x).powi(2) + (vz - z).powi(2);
+                if dist_sq < r_sq {
+                    let falloff = 1.0 - (dist_sq / r_sq).sqrt();
+                    self.current[i] += magnitude * falloff;
+                }
+            }
+        }
+    }
+
+    pub fn get_height(&self, x: f32, z: f32) -> f32 {
+        let size = self.size as f32;
+
+        let col = ((x + 10.0) / 20.0 * (size - 1.0))
+            .round()
+            .clamp(0.0, size - 1.0) as usize;
+        let row = ((z + 10.0) / 20.0 * (size - 1.0))
+            .round()
+            .clamp(0.0, size - 1.0) as usize;
+
+        self.current[row * self.size + col]
+    }
+}
 
 #[derive(Debug, Component)]
 #[require(Transform, Visibility)]
@@ -56,7 +112,6 @@ pub fn spawn_ocean(
         .id();
     et.ocean = Some(ocean_id);
 
-    // Ocean Drag Observer for Camera Anchor
     commands.entity(ocean_id).observe(
         |mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
             drag.propagate(false);

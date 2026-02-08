@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{EntityTable, OceanBuffer};
+use crate::{world::ocean::OceanBuffer, EntityTable};
 use bevy::ecs::relationship::Relationship;
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
 use bevy::prelude::*;

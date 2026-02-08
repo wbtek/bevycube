@@ -21,10 +21,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{CubeParms, EntityTable, OceanBuffer};
+use crate::{EntityTable, OceanBuffer};
 use bevy::ecs::relationship::Relationship;
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
 use bevy::prelude::*;
+
+#[derive(Debug, Resource)]
+pub struct CubeParms {
+    pub rotation_speed: f32,
+}
 
 #[derive(Debug, Component, Default, Reflect)]
 #[reflect(Component)]
@@ -54,7 +59,6 @@ pub fn spawn_rotating_cube(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-    // roundel_mat: Handle<StandardMaterial>,
     roundel_mat: StandardMaterial,
     et: &mut ResMut<EntityTable>,
 ) -> Entity {

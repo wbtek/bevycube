@@ -31,11 +31,6 @@ use bevy::asset::embedded_asset;
 use bevy::image::*;
 use bevy::prelude::*;
 
-#[derive(Debug, Resource)]
-pub struct CubeParms {
-    pub rotation_speed: f32,
-}
-
 #[derive(Debug, Resource, Default)]
 pub struct EntityTable {
     pub cube: Option<Entity>,

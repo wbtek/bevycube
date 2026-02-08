@@ -35,7 +35,7 @@ fn main() {
         .insert_resource(world::disk::DiskParms {
             rotation_speed: 0.2,
         })
-        .insert_resource(CubeParms {
+        .insert_resource(world::cube::CubeParms {
             rotation_speed: -1.0,
         })
         .add_plugins(DefaultPlugins.set(AssetPlugin {

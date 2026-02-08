@@ -32,10 +32,6 @@ use bevy::image::*;
 use bevy::prelude::*;
 
 #[derive(Debug, Resource)]
-pub struct DiskParms {
-    pub rotation_speed: f32,
-}
-#[derive(Debug, Resource)]
 pub struct CubeParms {
     pub rotation_speed: f32,
 }

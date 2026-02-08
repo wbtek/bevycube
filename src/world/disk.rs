@@ -21,8 +21,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{DiskParms, EntityTable};
+use crate::EntityTable;
 use bevy::prelude::*;
+
+#[derive(Debug, Resource)]
+pub struct DiskParms {
+    pub rotation_speed: f32,
+}
 
 #[derive(Debug, Component, Default, Reflect)]
 #[reflect(Component)]
@@ -47,7 +52,6 @@ pub fn spawn_rotating_disk(
             RotatingDisk,
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(materials.add(roundel_mat)),
-            // 3. Transform is now default (Y is Up!)
             Transform::IDENTITY,
         ))
         .id();

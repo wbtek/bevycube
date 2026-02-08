@@ -32,7 +32,7 @@ fn main() {
 
     App::new()
         .init_resource::<EntityTable>()
-        .insert_resource(DiskParms {
+        .insert_resource(world::disk::DiskParms {
             rotation_speed: 0.2,
         })
         .insert_resource(CubeParms {

@@ -48,8 +48,8 @@ pub struct EntityTable {
     pub ocean: Option<Entity>,
 }
 
-pub struct DemoAssetsPlugin;
-impl Plugin for DemoAssetsPlugin {
+pub struct EmbeddedAssetsPlugin;
+impl Plugin for EmbeddedAssetsPlugin {
     fn build(&self, app: &mut App) {
         embedded_asset!(app, "media/wbtekbg2b512.jpg");
         embedded_asset!(app, "media/settings.jpg");

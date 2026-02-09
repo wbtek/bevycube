@@ -299,16 +299,11 @@ pub fn apply_buoyancy(
     et: Res<EntityTable>,
     water: Res<OceanBuffer>,
     mut query: Query<&mut Transform, (With<RotatingCube>, Without<JumpData>)>,
-    transform_query: Query<&Transform, Without<RotatingCube>>,
     parent_query: Query<&ChildOf>,
 ) {
-    let (Some(cube_id), Some(ocean_id), Some(ground_id)) = (et.cube, et.ocean, et.ground) else {
+    let (Some(cube_id), Some(ocean_id)) = (et.cube, et.ocean) else {
         return;
     };
-    let ground_y = transform_query
-        .get(ground_id)
-        .map(|t| t.translation.y)
-        .unwrap_or(0.0);
     if let Ok(mut transform) = query.get_mut(cube_id) {
         if let Ok(parent) = parent_query.get(cube_id) {
             if parent.get() == ocean_id {
@@ -316,14 +311,19 @@ pub fn apply_buoyancy(
                 let z = transform.translation.z;
 
                 let surface_y = water.get_height(x, z);
-                // if surface_y < ground_y {
-                if surface_y < -0.75 || transform.translation.y < 0.25 {
-                    transform.translation.y = 0.25;
+                if surface_y < -1.75 || transform.translation.y < -0.75 {
+                    transform.translation.y = -0.75;
                 } else {
                     let mut proposed = transform.translation;
-                    proposed.y = (proposed.y + (surface_y - (proposed.y - 0.50)) * 0.25).max(0.25);
-                    proposed.x += (water.get_height(x - 1., z) - water.get_height(x + 1., z)) / 3.;
-                    proposed.z += (water.get_height(x, z - 1.) - water.get_height(x, z + 1.)) / 3.;
+                    proposed.y = (proposed.y + (surface_y - (proposed.y - 0.50)) * 0.25).max(-0.75);
+
+                    let testx = (water.get_height(x - 1., z) - water.get_height(x + 1., z)) / 3.;
+                    let testz = (water.get_height(x, z - 1.) - water.get_height(x, z + 1.)) / 3.;
+
+                    if testx.abs() + testz.abs() > 0.002 {
+                        proposed.x += testx.clamp(-0.02, 0.02);
+                        proposed.z += testz.clamp(-0.02, 0.02);
+                    }
 
                     proposed = proposed.xz().clamp_length_min(5.4).extend(proposed.y).xzy();
 

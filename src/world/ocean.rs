@@ -43,7 +43,33 @@ impl OceanBuffer {
     }
 
     pub fn swap(&mut self) {
+        self.zap_edges();
         std::mem::swap(&mut self.current, &mut self.previous);
+    }
+
+    pub fn zap_edges(&mut self) {
+        let left_column = 0;
+        let right_column = self.size - 1;
+        let top_row = 0;
+        let bottom_row = self.size - 1;
+
+        for n in 1..self.size - 1 {
+            // not the corners
+
+            let row = n;
+            self.current[row * self.size + left_column] = 0.;
+            self.current[row * self.size + right_column] = 0.;
+
+            let col = n;
+            self.current[top_row * self.size + col] = 0.;
+            self.current[bottom_row * self.size + col] = 0.;
+        }
+
+        // the corners
+        self.current[top_row * self.size + left_column] = 0.;
+        self.current[top_row * self.size + right_column] = 0.;
+        self.current[bottom_row * self.size + left_column] = 0.;
+        self.current[bottom_row * self.size + right_column] = 0.;
     }
 
     /// Injects a vertical displacement at a specific world coordinate.
@@ -196,7 +222,12 @@ pub fn spawn_ocean(
     let grid_size = 12;
     commands.insert_resource(OceanBuffer::new(grid_size));
 
-    let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10).build();
+    // let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10).build();
+    let ocean_mesh = Plane3d::default()
+        .mesh()
+        .size(23.0, 23.0)
+        .subdivisions(10)
+        .build();
     // let ocean_mesh = create_foo_mesh(23., 23., 10);
 
     let wire_mesh = generate_wireframe_from_mesh(&ocean_mesh);
@@ -281,7 +312,7 @@ pub fn apply_camera_repulsion(
 
     let repulsion_radius = ((15.0 - dist) / 15.0 * 6.0).max(0.0);
     let r_sq = repulsion_radius * repulsion_radius;
-    let push_depth = ((15.0 - dist) / 15.0 * -2.0).min(0.0);
+    let push_depth = ((15.0 - dist) / 15.0 * -5.0).min(0.0);
 
     let size = water.size;
     let step = 2.0;
@@ -314,10 +345,11 @@ pub fn simulate_waves(
     for z in 1..size - 1 {
         for x in 1..size - 1 {
             let i = z * size + x;
-            let w_pos = Vec2::new((x as f32 * 2.0) - 10.0, (z as f32 * 2.0) - 10.0);
 
+            let w_pos = Vec2::new((x as f32 * 2.0) - 10.0, (z as f32 * 2.0) - 10.0);
             if w_pos.distance_squared(disk_xz) < 16.5 {
-                water.previous[i] = 0.0;
+                water.previous[i] = -0.5;
+                // water.current[i] = -0.05;
                 continue;
             }
 
@@ -331,8 +363,8 @@ pub fn simulate_waves(
                 + water.current[i + size]
                 + water.current[i + size + 1])
                 / 9.0;
-
             water.previous[i] = (avg * 2.0 - water.previous[i]) * 0.98;
+            // water.previous[i] = avg;
         }
     }
     water.swap();

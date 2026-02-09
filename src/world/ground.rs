@@ -43,7 +43,7 @@ pub fn spawn_ground(
                 base_color_texture: Some(ocean_floor_handle),
                 ..default()
             })),
-            Transform::from_xyz(0.0, -1.0, 0.0),
+            Transform::from_xyz(0.0, -2.0, 0.0),
         ))
         .id();
     et.ground = Some(ground_id);

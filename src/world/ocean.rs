@@ -196,7 +196,7 @@ pub fn spawn_ocean(
     let grid_size = 12;
     commands.insert_resource(OceanBuffer::new(grid_size));
 
-    let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10);
+    let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10).build();
     // let ocean_mesh = create_foo_mesh(23., 23., 10);
 
     let wire_mesh = generate_wireframe_from_mesh(&ocean_mesh);

@@ -112,11 +112,11 @@ pub fn spawn_settings_ui(
             [AResHi, AResMed, AResLow]
         ),
         row!(
-            FPSDisplay,
+            Mesh,
             410.,
             455.,
-            [107., 177., 255.],
-            [FPSDispOn, FPSDispOff]
+            [107., 179., 280., 433.],
+            [MeshOff, MeshWire, MeshPoint]
         ),
     ];
 
@@ -124,7 +124,7 @@ pub fn spawn_settings_ui(
         Anisotropic,
         Mipmaps,
         AssetResolution,
-        FPSDisplay,
+        Mesh,
     }
     enum SetItem {
         An16,
@@ -137,8 +137,9 @@ pub fn spawn_settings_ui(
         AResHi,
         AResMed,
         AResLow,
-        FPSDispOn,
-        FPSDispOff,
+        MeshOff,
+        MeshWire,
+        MeshPoint,
     }
     struct SettingsCategory {
         cat: SetCatType,
@@ -196,6 +197,7 @@ pub fn spawn_settings_ui(
         move |mut click: On<Pointer<Click>>,
               et: Res<EntityTable>,
               stitched: Option<Res<StitchedRoundel>>,
+              mut commands: Commands,
               mut query: Query<(&mut Settings, &GlobalTransform)>,
               mut diamond_query: Query<&mut Transform, Without<Settings>>,
               mut images: ResMut<Assets<Image>>,
@@ -344,10 +346,37 @@ pub fn spawn_settings_ui(
                             }
                         }
                     }
-                    SetCatType::FPSDisplay => {
+                    SetCatType::Mesh => {
                         if let Ok(mut transform) = diamond_query.get_mut(et.set_fps.unwrap()) {
                             transform.translation =
                                 Vec3::new(to_local(x_start + 14.0), 0.01, to_local(y_start + 22.0));
+                        }
+                        match item {
+                            SetItem::MeshOff => {
+                                commands
+                                    .entity(et.ocean_wire.expect("No entity!"))
+                                    .insert(Visibility::Hidden);
+                                commands
+                                    .entity(et.ocean_point.expect("No entity!"))
+                                    .insert(Visibility::Hidden);
+                            }
+                            SetItem::MeshWire => {
+                                commands
+                                    .entity(et.ocean_wire.expect("No entity!"))
+                                    .insert(Visibility::Visible);
+                                commands
+                                    .entity(et.ocean_point.expect("No entity!"))
+                                    .insert(Visibility::Hidden);
+                            }
+                            SetItem::MeshPoint => {
+                                commands
+                                    .entity(et.ocean_wire.expect("No entity!"))
+                                    .insert(Visibility::Hidden);
+                                commands
+                                    .entity(et.ocean_point.expect("No entity!"))
+                                    .insert(Visibility::Visible);
+                            }
+                            _ => {}
                         }
                     }
                 }

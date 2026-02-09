@@ -46,6 +46,8 @@ pub struct EntityTable {
     pub main_anchor: Option<Entity>,
     pub main_camera: Option<Entity>,
     pub ocean: Option<Entity>,
+    pub ocean_wire: Option<Entity>,
+    pub ocean_point: Option<Entity>,
 }
 
 pub struct EmbeddedAssetsPlugin;

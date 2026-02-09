@@ -85,6 +85,108 @@ impl OceanBuffer {
 #[require(Transform, Visibility)]
 pub struct Ocean;
 
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::Indices;
+use bevy::mesh::PrimitiveTopology;
+
+/*
+// Works: Functionally equivalent, modifyable
+fn create_foo_mesh(x_units: f32, z_units: f32, subdivisions: u32) -> Mesh {
+    let grid_res = subdivisions + 2;
+    let total_vertices = (grid_res * grid_res) as usize;
+    let x_spacing = x_units / (grid_res as f32 - 1.0);
+    let z_spacing = z_units / (grid_res as f32 - 1.0);
+
+    let mut positions = Vec::with_capacity(total_vertices);
+    let mut indices = Vec::new();
+
+    // 1. Position mapping (foo = 144 vertices)
+    for i in 0..total_vertices as u32 {
+        let row = i / grid_res;
+        let col = i % grid_res;
+        let x = (col as f32 * x_spacing) - (x_units / 2.0);
+        let z = (row as f32 * z_spacing) - (z_units / 2.0);
+        positions.push([x, 0.0, z]);
+    }
+
+    // 2. Index mapping (Standard CCW winding)
+    for row in 0..grid_res - 1 {
+        for col in 0..grid_res - 1 {
+            let i = row * grid_res + col;
+            indices.extend_from_slice(&[i, i + grid_res, i + 1]);
+            indices.extend_from_slice(&[i + 1, i + grid_res, i + grid_res + 1]);
+        }
+    }
+
+    // 3. Bevy 0.18 Constructor
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default() // Required for dynamic updates in 0.18
+    );
+
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_indices(Indices::U32(indices));
+    // Required for PBR and Solari lighting in 0.18
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0.0, 1.0, 0.0]; total_vertices]);
+
+    mesh
+}
+*/
+
+/*
+// Works: proves we can accept the parameters and return the right value.
+fn create_foo_mesh(x_units: f32, z_units: f32, subdivisions: u32) -> Mesh {
+    Plane3d::default().mesh().size(x_units, z_units).subdivisions(subdivisions).build()
+}
+*/
+
+pub fn generate_wireframe_from_mesh(source_mesh: &Mesh) -> Mesh {
+    // 1. Create a new mesh using LineList topology
+    let mut wireframe_mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default());
+
+    // 2. Copy the exact same vertex positions (No new generation needed)
+    if let Some(positions) = source_mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+        wireframe_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
+    }
+
+    // 3. Convert Triangle Triplets [0, 1, 2] into Line Pairs [0, 1, 1, 2, 2, 0]
+    if let Some(indices) = source_mesh.indices() {
+        let mut line_indices = Vec::new();
+
+        // This iterator works for both u16 and u32 indices
+        let mut iter = indices.iter();
+        while let (Some(a), Some(b), Some(c)) = (iter.next(), iter.next(), iter.next()) {
+            // Triangle edges: A-B, B-C, C-A
+            line_indices
+                .extend_from_slice(&[a as u32, b as u32, b as u32, c as u32, c as u32, a as u32]);
+        }
+
+        wireframe_mesh.insert_indices(Indices::U32(line_indices));
+    }
+
+    wireframe_mesh
+}
+
+pub fn generate_points_from_mesh(source_mesh: &Mesh) -> Mesh {
+    let mut point_mesh = Mesh::new(
+        PrimitiveTopology::PointList, // Tell the GPU: "One vertex = One point"
+        RenderAssetUsages::default(),
+    );
+
+    // Copy the positions exactly like we did for lines
+    if let Some(positions) = source_mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+        point_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
+    }
+
+    // Point lists don't technically need indices, but keeping them
+    // ensures the GPU knows which vertices to draw.
+    if let Some(indices) = source_mesh.indices() {
+        point_mesh.insert_indices(indices.clone());
+    }
+
+    point_mesh
+}
+
 pub fn spawn_ocean(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -95,6 +197,10 @@ pub fn spawn_ocean(
     commands.insert_resource(OceanBuffer::new(grid_size));
 
     let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10);
+    // let ocean_mesh = create_foo_mesh(23., 23., 10);
+
+    let wire_mesh = generate_wireframe_from_mesh(&ocean_mesh);
+    let point_mesh = generate_points_from_mesh(&ocean_mesh);
 
     let ocean_id = commands
         .spawn((
@@ -111,6 +217,34 @@ pub fn spawn_ocean(
         ))
         .id();
     et.ocean = Some(ocean_id);
+
+    let ocean_wire_id = commands
+        .spawn((
+            Ocean,
+            Mesh3d(meshes.add(wire_mesh)),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                unlit: false, // Makes it bright regardless of lighting
+                ..default()
+            })),
+            Visibility::Hidden,
+        ))
+        .id();
+    et.ocean_wire = Some(ocean_wire_id);
+
+    let ocean_point_id = commands
+        .spawn((
+            Ocean,
+            Mesh3d(meshes.add(point_mesh)),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                unlit: true, // Makes it bright regardless of lighting
+                ..default()
+            })),
+            Visibility::Hidden,
+        ))
+        .id();
+    et.ocean_point = Some(ocean_point_id);
 
     commands.entity(ocean_id).observe(
         |mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {

@@ -23,12 +23,11 @@
 
 use bevy::asset::AssetMetaCheck;
 use bevy::prelude::*;
-
 use bevycube::*;
 
 fn main() {
     #[cfg(target_arch = "wasm32")]
-    console_log::init_with_level(log::Level::Debug).ok();
+    console_log::init_with_level(log::Level::Info).ok();
 
     App::new()
         .init_resource::<EntityTable>()

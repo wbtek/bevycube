@@ -24,27 +24,27 @@
 use bevy::prelude::*;
 
 pub fn spawn_lights(commands: &mut Commands) {
-    commands.spawn((
-        PointLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(-7.0, 10.0, -7.0),
-    ));
+  commands.spawn((
+    PointLight {
+      shadows_enabled: true,
+      ..default()
+    },
+    Transform::from_xyz(-7.0, 10.0, -7.0),
+  ));
 
-    commands.spawn((
-        PointLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(7.0, 10.0, -7.0),
-    ));
+  commands.spawn((
+    PointLight {
+      shadows_enabled: true,
+      ..default()
+    },
+    Transform::from_xyz(7.0, 10.0, -7.0),
+  ));
 
-    commands.spawn((
-        PointLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(4.0, 8.0, 4.0),
-    ));
+  commands.spawn((
+    PointLight {
+      shadows_enabled: true,
+      ..default()
+    },
+    Transform::from_xyz(4.0, 8.0, 4.0),
+  ));
 }

@@ -26,7 +26,7 @@ use bevy::prelude::*;
 
 #[derive(Debug, Resource)]
 pub struct DiskParms {
-    pub rotation_speed: f32,
+  pub rotation_speed: f32,
 }
 
 #[derive(Debug, Component, Default, Reflect)]
@@ -35,48 +35,48 @@ pub struct DiskParms {
 pub struct RotatingDisk;
 
 pub fn spawn_rotating_disk(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    roundel_mat: StandardMaterial,
-    et: &mut ResMut<EntityTable>,
+  commands: &mut Commands,
+  meshes: &mut ResMut<Assets<Mesh>>,
+  materials: &mut ResMut<Assets<StandardMaterial>>,
+  roundel_mat: StandardMaterial,
+  et: &mut ResMut<EntityTable>,
 ) -> Entity {
-    let mesh = Circle::new(4.0)
-        .mesh()
-        .resolution(128)
-        .build()
-        .rotated_by(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
+  let mesh = Circle::new(4.0)
+    .mesh()
+    .resolution(128)
+    .build()
+    .rotated_by(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
 
-    let disk_id = commands
-        .spawn((
-            RotatingDisk,
-            Mesh3d(meshes.add(mesh)),
-            MeshMaterial3d(materials.add(roundel_mat)),
-            Transform::IDENTITY,
-        ))
-        .id();
+  let disk_id = commands
+    .spawn((
+      RotatingDisk,
+      Mesh3d(meshes.add(mesh)),
+      MeshMaterial3d(materials.add(roundel_mat)),
+      Transform::IDENTITY,
+    ))
+    .id();
 
-    et.disk = Some(disk_id);
+  et.disk = Some(disk_id);
 
-    commands.entity(disk_id).observe(
-        |mut drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
-            drag.propagate(false);
-            settings.rotation_speed += drag.delta.x * 0.001;
-        },
-    );
+  commands.entity(disk_id).observe(
+    |mut drag: On<Pointer<Drag>>, mut settings: ResMut<DiskParms>| {
+      drag.propagate(false);
+      settings.rotation_speed += drag.delta.x * 0.001;
+    },
+  );
 
-    disk_id
+  disk_id
 }
 
 pub fn rotate_disk(
-    et: Res<EntityTable>,
-    mut query: Query<&mut Transform>,
-    settings: Res<DiskParms>,
-    time: Res<Time>,
+  et: Res<EntityTable>,
+  mut query: Query<&mut Transform>,
+  settings: Res<DiskParms>,
+  time: Res<Time>,
 ) {
-    if let Some(id) = et.disk {
-        if let Ok(mut transform) = query.get_mut(id) {
-            transform.rotate_local_y(settings.rotation_speed * time.delta_secs());
-        }
+  if let Some(id) = et.disk {
+    if let Ok(mut transform) = query.get_mut(id) {
+      transform.rotate_local_y(settings.rotation_speed * time.delta_secs());
     }
+  }
 }

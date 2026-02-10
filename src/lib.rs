@@ -33,28 +33,28 @@ use bevy::prelude::*;
 
 #[derive(Debug, Resource, Default)]
 pub struct EntityTable {
-    pub cube: Option<Entity>,
-    pub disk: Option<Entity>,
-    pub ground: Option<Entity>,
-    pub settings: Option<Entity>,
-    pub set_anisotropic: Option<Entity>,
-    pub set_mipmaps: Option<Entity>,
-    pub set_resolution: Option<Entity>,
-    pub set_fps: Option<Entity>,
-    pub safety_disk: Option<Entity>,
-    pub safety_disk_hidden: Option<Entity>,
-    pub main_anchor: Option<Entity>,
-    pub main_camera: Option<Entity>,
-    pub ocean: Option<Entity>,
-    pub ocean_wire: Option<Entity>,
-    pub ocean_point: Option<Entity>,
+  pub cube: Option<Entity>,
+  pub disk: Option<Entity>,
+  pub ground: Option<Entity>,
+  pub settings: Option<Entity>,
+  pub set_anisotropic: Option<Entity>,
+  pub set_mipmaps: Option<Entity>,
+  pub set_resolution: Option<Entity>,
+  pub set_fps: Option<Entity>,
+  pub safety_disk: Option<Entity>,
+  pub safety_disk_hidden: Option<Entity>,
+  pub main_anchor: Option<Entity>,
+  pub main_camera: Option<Entity>,
+  pub ocean: Option<Entity>,
+  pub ocean_wire: Option<Entity>,
+  pub ocean_point: Option<Entity>,
 }
 
 pub struct EmbeddedAssetsPlugin;
 impl Plugin for EmbeddedAssetsPlugin {
-    fn build(&self, app: &mut App) {
-        embedded_asset!(app, "media/wbtekbg2b512.jpg");
-        embedded_asset!(app, "media/settings.jpg");
-        embedded_asset!(app, "media/diamond_sprite.jpg");
-    }
+  fn build(&self, app: &mut App) {
+    embedded_asset!(app, "media/wbtekbg2b512.jpg");
+    embedded_asset!(app, "media/settings.jpg");
+    embedded_asset!(app, "media/diamond_sprite.jpg");
+  }
 }

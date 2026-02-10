@@ -26,28 +26,28 @@ use bevy::prelude::*;
 use bevycube::*;
 
 fn main() {
-    #[cfg(target_arch = "wasm32")]
-    console_log::init_with_level(log::Level::Info).ok();
+  #[cfg(target_arch = "wasm32")]
+  console_log::init_with_level(log::Level::Info).ok();
 
-    App::new()
-        .init_resource::<EntityTable>()
-        .insert_resource(world::disk::DiskParms {
-            rotation_speed: 0.2,
-        })
-        .insert_resource(world::cube::CubeParms {
-            rotation_speed: -1.0,
-        })
-        .add_plugins(DefaultPlugins.set(AssetPlugin {
-            meta_check: AssetMetaCheck::Never,
-            ..default()
-        }))
-        .add_plugins(MeshPickingPlugin)
-        .add_plugins((
-            EmbeddedAssetsPlugin,
-            roundel::RoundelPlugin,
-            world::WorldPlugin,
-            world::camera::CameraPlugin,
-            ui::SettingsUiPlugin,
-        ))
-        .run();
+  App::new()
+    .init_resource::<EntityTable>()
+    .insert_resource(world::disk::DiskParms {
+      rotation_speed: 0.2,
+    })
+    .insert_resource(world::cube::CubeParms {
+      rotation_speed: -1.0,
+    })
+    .add_plugins(DefaultPlugins.set(AssetPlugin {
+      meta_check: AssetMetaCheck::Never,
+      ..default()
+    }))
+    .add_plugins(MeshPickingPlugin)
+    .add_plugins((
+      EmbeddedAssetsPlugin,
+      roundel::RoundelPlugin,
+      world::WorldPlugin,
+      world::camera::CameraPlugin,
+      ui::SettingsUiPlugin,
+    ))
+    .run();
 }

@@ -28,7 +28,7 @@ use bevy::prelude::*;
 #[derive(Resource)]
 pub struct OceanBuffer {
   pub current: Vec<f32>,
-  pub previous: Vec<f32>,
+  pub next: Vec<f32>,
   pub size: usize,
 }
 
@@ -37,13 +37,13 @@ impl OceanBuffer {
     let count = size * size;
     Self {
       current: vec![0.0; count],
-      previous: vec![0.0; count],
+      next: vec![0.0; count],
       size,
     }
   }
 
   pub fn swap(&mut self) {
-    std::mem::swap(&mut self.current, &mut self.previous);
+    std::mem::swap(&mut self.current, &mut self.next);
   }
 
   pub fn zap_edges(&mut self) {
@@ -87,7 +87,7 @@ impl OceanBuffer {
         if dist_sq < r_sq {
           let falloff = 1.0 - (dist_sq / r_sq).sqrt();
           self.current[i] += magnitude * falloff;
-          self.previous[i] += magnitude * falloff;
+          self.next[i] += magnitude * falloff;
         }
       }
     }
@@ -323,7 +323,7 @@ pub fn apply_camera_repulsion(
       let w_pos = Vec2::new((x as f32 * step) - 10.0, (z as f32 * step) - 10.0);
 
       if w_pos.distance_squared(anchor_xz) < r_sq {
-        water.previous[i] = push_depth;
+        water.next[i] = push_depth;
       }
     }
   }
@@ -347,7 +347,7 @@ pub fn simulate_waves(
 
       let w_pos = Vec2::new((x as f32 * 2.0) - 10.0, (z as f32 * 2.0) - 10.0);
       if w_pos.distance_squared(disk_xz) < 16.5 {
-        water.previous[i] = -0.5;
+        water.next[i] = -0.5;
         continue;
       }
 
@@ -361,7 +361,7 @@ pub fn simulate_waves(
         + water.current[i + size]
         + water.current[i + size + 1])
         / 9.0;
-      water.previous[i] = (avg * 2.0 - water.previous[i]) * 0.98;
+      water.next[i] = (avg * 2.0 - water.next[i]) * 0.98;
     }
   }
 }

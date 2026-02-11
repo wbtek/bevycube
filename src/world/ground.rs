@@ -28,13 +28,20 @@ use bevy::prelude::*;
 #[require(Transform, Visibility)]
 pub struct Ground;
 
+#[derive(Resource, Debug)]
+pub struct GroundConfig {
+  pub world_y: f32,
+}
+
 pub fn spawn_ground(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
   materials: &mut ResMut<Assets<StandardMaterial>>,
+  ground_config: Res<GroundConfig>,
   ocean_floor_handle: Handle<Image>,
   et: &mut ResMut<EntityTable>,
 ) -> Entity {
+  let world_y = ground_config.world_y;
   let ground_id = commands
     .spawn((
       Ground,
@@ -43,7 +50,7 @@ pub fn spawn_ground(
         base_color_texture: Some(ocean_floor_handle),
         ..default()
       })),
-      Transform::from_xyz(0.0, -2.0, 0.0),
+      Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();
   et.ground = Some(ground_id);

@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::world::ground::GroundConfig;
 use crate::EntityTable;
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
@@ -30,16 +31,31 @@ pub struct OceanBuffer {
   pub current: Vec<f32>,
   pub next: Vec<f32>,
   pub size: usize,
+  pub side_length: f32,
+  pub world_y: f32,
 }
 
 impl OceanBuffer {
-  pub fn new(size: usize) -> Self {
+  pub fn new(size: usize, side_length: f32, world_y: f32) -> Self {
     let count = size * size;
     Self {
       current: vec![0.0; count],
       next: vec![0.0; count],
       size,
+      side_length,
+      world_y,
     }
+  }
+
+  pub fn spacing(&self) -> f32 {
+    self.side_length / (self.size - 1) as f32
+  }
+
+  pub fn get_world_pos(&self, x_idx: usize, z_idx: usize) -> Vec3 {
+    let offset = self.side_length / 2.;
+    let x = (x_idx as f32 * self.spacing()) - offset;
+    let z = (z_idx as f32 * self.spacing()) - offset;
+    Vec3::new(x, 0., z)
   }
 
   pub fn swap(&mut self) {
@@ -73,15 +89,17 @@ impl OceanBuffer {
 
   /// Injects a vertical displacement at a specific world coordinate.
   pub fn splash(&mut self, x: f32, z: f32, magnitude: f32, diameter: f32) {
-    let size = self.size as f32;
-    let spacing = 20.0 / (size - 1.0);
+    // let size = self.size as f32;
+    // let spacing = 20.0 / (size - 1.0);
+    let spacing = self.spacing();
+    let side_length = self.side_length;
     let r_sq = (diameter / 2.0).powi(2);
 
     for row in 0..self.size {
       for col in 0..self.size {
         let i = row * self.size + col;
-        let vx = (col as f32 * spacing) - 10.0;
-        let vz = (row as f32 * spacing) - 10.0;
+        let vx = (col as f32 * spacing) - side_length / 2.;
+        let vz = (row as f32 * spacing) - side_length / 2.;
 
         let dist_sq = (vx - x).powi(2) + (vz - z).powi(2);
         if dist_sq < r_sq {
@@ -218,14 +236,18 @@ pub fn spawn_ocean(
   materials: &mut ResMut<Assets<StandardMaterial>>,
   et: &mut ResMut<EntityTable>,
 ) -> Entity {
-  let grid_size = 12;
-  commands.insert_resource(OceanBuffer::new(grid_size));
+  // let grid_size = 12;
+  // let side_length = 23.0;
+  let grid_size = 40;
+  let side_length = 20.0;
+  let world_y = -0.25;
+  commands.insert_resource(OceanBuffer::new(grid_size, side_length, world_y));
 
   // let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10).build();
   let ocean_mesh = Plane3d::default()
     .mesh()
-    .size(23.0, 23.0)
-    .subdivisions(10)
+    .size(side_length, side_length)
+    .subdivisions((grid_size - 2) as u32)
     .build();
   // let ocean_mesh = create_foo_mesh(23., 23., 10);
 
@@ -243,7 +265,7 @@ pub fn spawn_ocean(
         metallic: 0.2,
         ..default()
       })),
-      Transform::from_xyz(0.0, -0.25, 0.0),
+      Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();
   et.ocean = Some(ocean_id);
@@ -254,7 +276,7 @@ pub fn spawn_ocean(
       Mesh3d(meshes.add(wire_mesh)),
       MeshMaterial3d(materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        unlit: false, // Makes it bright regardless of lighting
+        unlit: false,
         ..default()
       })),
       Visibility::Hidden,
@@ -268,7 +290,7 @@ pub fn spawn_ocean(
       Mesh3d(meshes.add(point_mesh)),
       MeshMaterial3d(materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        unlit: true, // Makes it bright regardless of lighting
+        unlit: true,
         ..default()
       })),
       Visibility::Hidden,
@@ -314,15 +336,17 @@ pub fn apply_camera_repulsion(
   let push_depth = ((15.0 - dist) / 15.0 * -5.0).min(0.0);
 
   let size = water.size;
-  let step = 2.0;
-  let anchor_xz = anchor_pos.xz();
 
   for z in 1..size - 1 {
     for x in 1..size - 1 {
       let i = z * size + x;
-      let w_pos = Vec2::new((x as f32 * step) - 10.0, (z as f32 * step) - 10.0);
 
-      if w_pos.distance_squared(anchor_xz) < r_sq {
+      if water
+        .get_world_pos(x, z)
+        .xz()
+        .distance_squared(anchor_pos.xz())
+        < r_sq
+      {
         water.next[i] = push_depth;
       }
     }
@@ -345,8 +369,7 @@ pub fn simulate_waves(
     for x in 1..size - 1 {
       let i = z * size + x;
 
-      let w_pos = Vec2::new((x as f32 * 2.0) - 10.0, (z as f32 * 2.0) - 10.0);
-      if w_pos.distance_squared(disk_xz) < 16.5 {
+      if water.get_world_pos(x, z).xz().distance_squared(disk_xz) < 16.5 {
         water.next[i] = -0.5;
         continue;
       }
@@ -368,6 +391,7 @@ pub fn simulate_waves(
 
 pub fn update_ocean_mesh(
   water: Res<OceanBuffer>,
+  ground_config: Res<GroundConfig>,
   mut meshes: ResMut<Assets<Mesh>>,
   query: Query<&Mesh3d, With<Ocean>>,
 ) {
@@ -378,7 +402,7 @@ pub fn update_ocean_mesh(
       {
         for (i, p) in pos.iter_mut().enumerate() {
           if i < water.current.len() {
-            p[1] = water.current[i];
+            p[1] = water.current[i].max(ground_config.world_y);
           }
         }
       }

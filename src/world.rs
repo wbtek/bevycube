@@ -44,6 +44,7 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
   fn build(&self, app: &mut App) {
     app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
+    app.insert_resource(ground::GroundConfig { world_y: -2.0 });
     app.add_systems(
       FixedUpdate,
       (
@@ -70,6 +71,7 @@ pub fn setup(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
+  ground_config: Res<ground::GroundConfig>,
   asset_server: Res<AssetServer>,
   mut et: ResMut<EntityTable>,
 ) {
@@ -118,6 +120,7 @@ pub fn setup(
     &mut commands,
     &mut meshes,
     &mut materials,
+    ground_config,
     ocean_floor_handle,
     &mut et,
   );

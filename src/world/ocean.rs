@@ -43,7 +43,6 @@ impl OceanBuffer {
   }
 
   pub fn swap(&mut self) {
-    self.zap_edges();
     std::mem::swap(&mut self.current, &mut self.previous);
   }
 
@@ -88,6 +87,7 @@ impl OceanBuffer {
         if dist_sq < r_sq {
           let falloff = 1.0 - (dist_sq / r_sq).sqrt();
           self.current[i] += magnitude * falloff;
+          self.previous[i] += magnitude * falloff;
         }
       }
     }
@@ -323,7 +323,7 @@ pub fn apply_camera_repulsion(
       let w_pos = Vec2::new((x as f32 * step) - 10.0, (z as f32 * step) - 10.0);
 
       if w_pos.distance_squared(anchor_xz) < r_sq {
-        water.current[i] = push_depth;
+        water.previous[i] = push_depth;
       }
     }
   }
@@ -348,7 +348,6 @@ pub fn simulate_waves(
       let w_pos = Vec2::new((x as f32 * 2.0) - 10.0, (z as f32 * 2.0) - 10.0);
       if w_pos.distance_squared(disk_xz) < 16.5 {
         water.previous[i] = -0.5;
-        // water.current[i] = -0.05;
         continue;
       }
 
@@ -363,10 +362,8 @@ pub fn simulate_waves(
         + water.current[i + size + 1])
         / 9.0;
       water.previous[i] = (avg * 2.0 - water.previous[i]) * 0.98;
-      // water.previous[i] = avg;
     }
   }
-  water.swap();
 }
 
 pub fn update_ocean_mesh(
@@ -387,4 +384,12 @@ pub fn update_ocean_mesh(
       }
     }
   }
+}
+
+pub fn clamp_edges(mut water: ResMut<OceanBuffer>) {
+  water.zap_edges();
+}
+
+pub fn swap_and_copy(mut water: ResMut<OceanBuffer>) {
+  water.swap();
 }

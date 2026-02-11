@@ -44,21 +44,24 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
   fn build(&self, app: &mut App) {
     app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
-    app.add_systems(FixedUpdate, ocean::simulate_waves);
+    app.add_systems(
+      FixedUpdate,
+      (
+        ocean::simulate_waves,
+        ocean::apply_camera_repulsion,
+        ocean::clamp_edges,
+        ocean::swap_and_copy,
+        ocean::update_ocean_mesh,
+      )
+        .chain(),
+    );
     app.add_systems(FixedUpdate, cube::apply_buoyancy);
     app
       .register_type::<cube::RotatingCube>()
       .add_systems(Startup, setup)
       .add_systems(
         Update,
-        (
-          cube::rotate_cube,
-          disk::rotate_disk,
-          cube::update_jump,
-          ocean::apply_camera_repulsion,
-          ocean::update_ocean_mesh,
-        )
-          .chain(),
+        (cube::rotate_cube, disk::rotate_disk, cube::update_jump).chain(),
       );
   }
 }

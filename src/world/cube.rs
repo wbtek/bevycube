@@ -271,7 +271,7 @@ pub fn update_jump(
           * Quat::from_rotation_y(yaw)
           * Quat::from_rotation_x(4. * std::f32::consts::PI * (t - 0.0909) * 1.2222);
         let world_pos = transform.translation;
-        water.splash(world_pos.x, world_pos.z, 1.0, 1.0);
+        water.splash(world_pos.x, world_pos.z, 0.5, 3.0);
       } else {
         transform.rotation = data.start_rotation * Quat::from_rotation_y(yaw);
       }
@@ -286,7 +286,7 @@ pub fn update_jump(
     transform.scale = Vec3::splat(1.);
 
     let world_pos = transform.translation;
-    water.splash(world_pos.x, world_pos.z, 2.0, 2.0);
+    water.splash(world_pos.x, world_pos.z, 1.0, 3.0);
 
     commands
       .entity(cube_entity)

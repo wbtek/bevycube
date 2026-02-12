@@ -114,6 +114,14 @@ pub fn setup(
   let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
   let diamond_handle = asset_server.load("embedded://bevycube/media/diamond_sprite.jpg");
 
+  /*
+  let menu_main_handle = asset_server.load("embedded://bevycube/media/menu_main.jpg");
+  let menu_roundel_handle = asset_server.load("embedded://bevycube/media/menu_roundel.jpg");
+  let menu_ocean_handle = asset_server.load("embedded://bevycube/media/menu_ocean.jpg");
+  let menu_instructions_handle = asset_server.load("embedded://bevycube/media/menu_instructions.jpg");
+  let menu_about_handle = asset_server.load("embedded://bevycube/media/menu_about.jpg");
+  */
+
   let ocean_id = ocean::spawn_ocean(&mut commands, &mut meshes, &mut materials, &mut et);
 
   let ground_id = ground::spawn_ground(

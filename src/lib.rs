@@ -56,5 +56,10 @@ impl Plugin for EmbeddedAssetsPlugin {
     embedded_asset!(app, "media/wbtekbg2b512.jpg");
     embedded_asset!(app, "media/settings.jpg");
     embedded_asset!(app, "media/diamond_sprite.jpg");
+    embedded_asset!(app, "media/menu_main.jpg");
+    embedded_asset!(app, "media/menu_roundel.jpg");
+    embedded_asset!(app, "media/menu_ocean.jpg");
+    embedded_asset!(app, "media/menu_instructions.jpg");
+    embedded_asset!(app, "media/menu_about.jpg");
   }
 }

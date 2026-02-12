@@ -33,9 +33,6 @@ Make cube jump height adjust for obstacles?
 Spawn a backdrop so reflections on water can be seen
 
 Wavetank (ocean)
-  make edges of wave tank either be fixed or wrap to other side <<<------
-  make wavetank more robust
-  make wavetank deeper so it looks better
   float stuff on water to make surface more visible
 
 

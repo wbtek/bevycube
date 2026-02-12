@@ -1,3 +1,34 @@
+Menu,Item,X,Y,W,H,Has_Diamond,Action
+Main,Back,354,57,74,29,False,Navigate(None)
+Main,Roundel Settings,79,102,235,38,False,Navigate(Roundel)
+Main,Ocean Settings,80,147,207,38,False,Navigate(Ocean)
+Main,Instructions,79,192,167,29,False,Navigate(Instructions)
+Main,About,80,237,85,33,False,Navigate(About)
+Roundel,Back,354,57,73,29,False,Navigate(Main)
+Roundel,Anisotropic 16,111,147,52,29,True,SetAnisotropy(16)
+Roundel,Anisotropic 8,171,147,40,29,True,SetAnisotropy(8)
+Roundel,Anisotropic 4,219,147,39,29,True,SetAnisotropy(4)
+Roundel,Anisotropic 2,266,147,39,29,True,SetAnisotropy(2)
+Roundel,Anisotropic Off,314,147,69,38,True,SetAnisotropy(1)
+Roundel,Mipmaps On,111,237,62,29,True,SetMipmaps(True)
+Roundel,Mipmaps Off,182,237,68,38,True,SetMipmaps(False)
+Roundel,Resolution High,111,327,90,38,True,SetResolution(High)
+Roundel,Resolution Medium,210,327,136,29,True,SetResolution(Medium)
+Roundel,Resolution Low,354,328,75,37,True,SetResolution(Low)
+Ocean,Back,354,57,74,29,False,Navigate(Main)
+Ocean,Solid,111,147,97,30,True,SetMeshMode(Solid)
+Ocean,Wire,214,147,93,29,True,SetMeshMode(Wire)
+Ocean,Points,316,147,107,29,True,SetMeshMode(Points)
+Ocean,Mesh 5,111,237,55,29,True,SetMeshSubdiv(5)
+Ocean,Mesh 10,172,237,55,29,True,SetMeshSubdiv(10)
+Ocean,Mesh 20,233,237,56,29,True,SetMeshSubdiv(20)
+Ocean,Mesh 40,295,237,56,29,True,SetMeshSubdiv(40)
+Ocean,Mesh 80,357,237,60,29,True,SetMeshSubdiv(80)
+Instructions,Back,354,57,74,29,False,Navigate(Main)
+About,Back,354,57,74,29,False,Navigate(Main)
+About,Github,79,252,176,19,False,OpenUrl("https://wbtek.github.io/")
+About,Home,79,282,143,19,False,OpenUrl("https://wbtek.net/")
+
 Menus:
 
 ---------
@@ -42,7 +73,7 @@ back
 73
 29
 
-a16 diamond
+a16 diamond (the boundaries of the following diamond just to see)
 111
 147
 20

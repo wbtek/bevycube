@@ -152,6 +152,22 @@ pub fn setup(
     &mut et,
   );
 
+  crate::ui::main_ui::spawn_main_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
+  crate::ui::instructions_ui::spawn_instructions_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
   camera::spawn_camera(&mut commands, &mut et);
 
   lights::spawn_lights(&mut commands);

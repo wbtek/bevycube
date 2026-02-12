@@ -36,6 +36,8 @@ pub struct EntityTable {
   pub cube: Option<Entity>,
   pub disk: Option<Entity>,
   pub ground: Option<Entity>,
+  pub main_menu: Option<Entity>,
+  pub instructions_menu: Option<Entity>,
   pub settings: Option<Entity>,
   pub set_anisotropic: Option<Entity>,
   pub set_mipmaps: Option<Entity>,

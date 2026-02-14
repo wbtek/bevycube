@@ -38,6 +38,38 @@ pub struct CameraAnchor;
 #[derive(Component)]
 pub struct MainCamera;
 
+#[derive(Debug, Clone, Copy)]
+pub struct CameraParams {
+  pub anchor: Vec3,
+  pub direction: f32,
+  pub slope: f32,
+  pub zoom: f32,
+}
+
+impl Default for CameraParams {
+  fn default() -> Self {
+    Self {
+      anchor: Vec3::ZERO,
+      direction: 0.0,
+      slope: 0.0,
+      zoom: 15.0,
+    }
+  }
+}
+
+pub struct CameraMotion {
+  pub from: CameraParams,
+  pub target: CameraParams,
+  pub timer: Timer,
+}
+
+#[derive(Resource)]
+pub struct CameraAnchorRes {
+  pub current: CameraParams,
+  pub in_motion: Option<CameraMotion>,
+  pub camera_id: Option<Entity>,
+}
+
 pub fn spawn_camera(commands: &mut Commands, et: &mut ResMut<EntityTable>) {
   let anchor_id = commands
     .spawn((CameraAnchor, Transform::IDENTITY, Visibility::default()))

@@ -21,8 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::{roundel, EntityTable};
-// use crate::world::camera::CameraAnchorRes;
+use crate::{roundel, world::camera::CameraAnchorRes, EntityTable};
 use bevy::prelude::*;
 
 pub mod camera;
@@ -82,6 +81,7 @@ pub fn setup(
   ground_config: Res<ground::GroundConfig>,
   asset_server: Res<AssetServer>,
   mut et: ResMut<EntityTable>,
+  mut camera_anchor: ResMut<CameraAnchorRes>,
 ) {
   let roundel_handle = asset_server.load("embedded://bevycube/media/WhiteBearCrab64.jpg");
   let roundel_mat = roundel::get_roundel_material(roundel_handle.clone());
@@ -176,7 +176,7 @@ pub fn setup(
     &mut et,
   );
 
-  camera::spawn_camera(&mut commands, &mut et);
+  camera::spawn_camera(&mut commands, &mut et, &mut camera_anchor);
 
   lights::spawn_lights(&mut commands);
 

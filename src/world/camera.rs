@@ -114,18 +114,15 @@ impl Default for CameraAnchorRes {
   }
 }
 
-pub fn spawn_camera(commands: &mut Commands, et: &mut ResMut<EntityTable>) {
+pub fn spawn_camera(
+  commands: &mut Commands,
+  et: &mut ResMut<EntityTable>,
+  anchor: &mut ResMut<CameraAnchorRes>,
+) {
   let anchor_id = commands
     .spawn((CameraAnchor, Transform::IDENTITY, Visibility::default()))
     .id();
   et.main_anchor = Some(anchor_id);
-
-  /*
-  let anchor = commands
-    .spawn((CameraAnchor, Transform::IDENTITY, Visibility::default()));
-  let anchor_id = anchor.id();
-  et.main_anchor = Some(anchor_id);
-  */
 
   let camera_id = commands
     .spawn((
@@ -135,8 +132,7 @@ pub fn spawn_camera(commands: &mut Commands, et: &mut ResMut<EntityTable>) {
       Transform::from_xyz(0.0, 7.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
     ))
     .id();
-  et.main_camera = Some(camera_id);
-  //  anchor.camera_id = Some(camera_id);
+  anchor.camera_id = Some(camera_id);
 
   commands.entity(anchor_id).add_child(camera_id);
 }
@@ -176,22 +172,17 @@ pub fn sync_camera_transforms(
   let Some(anchor_id) = et.main_anchor else {
     return;
   };
-  let Some(camera_id) = et.main_camera else {
+  let Some(camera_id) = res.camera_id else {
     return;
   };
 
-  // 1. Update Anchor
   if let Ok(mut transform) = query.get_mut(anchor_id) {
     transform.translation = res.current.anchor;
   }
 
-  // 2. Update Camera (The child)
-  //   let Some(camera_id) = res.camera_id else { return; };
   if let Ok(mut transform) = query.get_mut(camera_id) {
     let offset = res.current.get_camera_offset();
     transform.translation = offset;
-    // Look at the anchor. Since the camera is a child,
-    // looking at Vec3::ZERO is looking at the parent's origin.
     transform.look_at(Vec3::ZERO, Vec3::Y);
   }
 }

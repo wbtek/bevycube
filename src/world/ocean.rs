@@ -21,6 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::world::camera;
+use crate::world::camera::CameraAnchorRes;
 use crate::world::ground::GroundConfig;
 use crate::EntityTable;
 use bevy::mesh::VertexAttributeValues;
@@ -299,37 +301,19 @@ pub fn spawn_ocean(
   et.ocean_point = Some(ocean_point_id);
 
   commands.entity(ocean_id).observe(
-    |mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
+    |mut drag: On<Pointer<Drag>>, mut res: ResMut<camera::CameraAnchorRes>| {
       drag.propagate(false);
-      if let Some(mut transform) = et.main_anchor.and_then(|id| query.get_mut(id).ok()) {
-        transform.translation.x -= drag.delta.x * 0.015;
-        transform.translation.z -= drag.delta.y * 0.015;
-      }
+      res
+        .current
+        .update_pan(-drag.delta.x * 0.015, -drag.delta.y * 0.015);
     },
   );
 
   ocean_id
 }
 
-pub fn apply_camera_repulsion(
-  mut water: ResMut<OceanBuffer>,
-  et: Res<EntityTable>,
-  global_transforms: Query<&GlobalTransform>,
-) {
-  let (Some(cam_id), Some(anchor_id)) = (et.main_camera, et.main_anchor) else {
-    return;
-  };
-
-  let Ok(cam_gtf) = global_transforms.get(cam_id) else {
-    return;
-  };
-  let Ok(anchor_gtf) = global_transforms.get(anchor_id) else {
-    return;
-  };
-
-  let cam_pos = cam_gtf.translation();
-  let anchor_pos = anchor_gtf.translation();
-  let dist = cam_pos.distance(anchor_pos);
+pub fn apply_camera_repulsion(mut water: ResMut<OceanBuffer>, anchor: ResMut<CameraAnchorRes>) {
+  let dist = anchor.current.get_camera_effect();
 
   let repulsion_radius = ((15.0 - dist) / 15.0 * 6.0).max(0.0);
   let r_sq = repulsion_radius * repulsion_radius;
@@ -344,7 +328,7 @@ pub fn apply_camera_repulsion(
       if water
         .get_world_pos(x, z)
         .xz()
-        .distance_squared(anchor_pos.xz())
+        .distance_squared(anchor.current.anchor.xz())
         < r_sq
       {
         water.next[i] = push_depth;

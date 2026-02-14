@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 use crate::{roundel, EntityTable};
+// use crate::world::camera::CameraAnchorRes;
 use bevy::prelude::*;
 
 pub mod camera;
@@ -45,6 +46,7 @@ impl Plugin for WorldPlugin {
   fn build(&self, app: &mut App) {
     app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
     app.insert_resource(ground::GroundConfig { world_y: -2.0 });
+    app.insert_resource(camera::CameraAnchorRes::default());
     app.add_systems(
       FixedUpdate,
       (
@@ -62,7 +64,13 @@ impl Plugin for WorldPlugin {
       .add_systems(Startup, setup)
       .add_systems(
         Update,
-        (cube::rotate_cube, disk::rotate_disk, cube::update_jump).chain(),
+        (
+          cube::rotate_cube,
+          disk::rotate_disk,
+          cube::update_jump,
+          camera::sync_camera_transforms,
+        )
+          .chain(),
       );
   }
 }

@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::world::camera;
 use crate::EntityTable;
 use bevy::prelude::*;
 
@@ -55,14 +56,12 @@ pub fn spawn_ground(
     .id();
   et.ground = Some(ground_id);
 
-  // Camera Anchor Drag Observer
   commands.entity(ground_id).observe(
-    |mut drag: On<Pointer<Drag>>, et: Res<EntityTable>, mut query: Query<&mut Transform>| {
+    |mut drag: On<Pointer<Drag>>, mut res: ResMut<camera::CameraAnchorRes>| {
       drag.propagate(false);
-      if let Some(mut transform) = et.main_anchor.and_then(|id| query.get_mut(id).ok()) {
-        transform.translation.x -= drag.delta.x * 0.015;
-        transform.translation.z -= drag.delta.y * 0.015;
-      }
+      res
+        .current
+        .update_pan(-drag.delta.x * 0.015, -drag.delta.y * 0.015);
     },
   );
 

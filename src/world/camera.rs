@@ -41,6 +41,7 @@ pub struct MainCamera;
 #[derive(Debug, Clone, Copy)]
 pub struct CameraParams {
   pub anchor: Vec3,
+  pub track_near_end_y: f32,
   pub direction: f32,
   pub slope: f32,
   pub zoom: f32,
@@ -50,10 +51,43 @@ impl Default for CameraParams {
   fn default() -> Self {
     Self {
       anchor: Vec3::ZERO,
+      track_near_end_y: 7.5,
       direction: 0.0,
       slope: 0.0,
       zoom: 15.0,
     }
+  }
+}
+
+impl CameraParams {
+  pub fn update_pan(&mut self, delta_x: f32, delta_y: f32) {
+    self.anchor += Vec3::new(delta_x, 0.0, delta_y);
+  }
+
+  pub fn update_zoom(&mut self, delta: f32) {
+    self.zoom = (self.zoom - delta).clamp(0.01, 40.0);
+  }
+
+  // Calculates where the camera should be relative to the anchor
+  pub fn get_camera_offset(&self) -> Vec3 {
+    // direction 0 is North (towards -Z).
+    // We calculate horizontal X and Z using direction, then scale by the slope's cosine.
+    let vertical_scale = self.slope.sin();
+    let horizontal_scale = self.slope.cos();
+
+    let x = self.direction.sin() * horizontal_scale * self.zoom;
+    let y = self.track_near_end_y + (vertical_scale * self.zoom);
+    let z = self.direction.cos() * horizontal_scale * self.zoom;
+
+    Vec3::new(x, y, z)
+  }
+
+  pub fn get_anchor_xyz(&self) -> Vec3 {
+    self.anchor
+  }
+
+  pub fn get_camera_effect(&self) -> f32 {
+    self.track_near_end_y + self.zoom
   }
 }
 
@@ -70,11 +104,28 @@ pub struct CameraAnchorRes {
   pub camera_id: Option<Entity>,
 }
 
+impl Default for CameraAnchorRes {
+  fn default() -> Self {
+    Self {
+      current: CameraParams::default(),
+      in_motion: None,
+      camera_id: None,
+    }
+  }
+}
+
 pub fn spawn_camera(commands: &mut Commands, et: &mut ResMut<EntityTable>) {
   let anchor_id = commands
     .spawn((CameraAnchor, Transform::IDENTITY, Visibility::default()))
     .id();
   et.main_anchor = Some(anchor_id);
+
+  /*
+  let anchor = commands
+    .spawn((CameraAnchor, Transform::IDENTITY, Visibility::default()));
+  let anchor_id = anchor.id();
+  et.main_anchor = Some(anchor_id);
+  */
 
   let camera_id = commands
     .spawn((
@@ -85,41 +136,62 @@ pub fn spawn_camera(commands: &mut Commands, et: &mut ResMut<EntityTable>) {
     ))
     .id();
   et.main_camera = Some(camera_id);
+  //  anchor.camera_id = Some(camera_id);
 
   commands.entity(anchor_id).add_child(camera_id);
 }
 
 pub fn update_camera_zoom(
   mut mouse_wheel: MessageReader<bevy::input::mouse::MouseWheel>,
-  et: Res<EntityTable>,
-  mut query: Query<&mut Transform>,
+  mut res: ResMut<CameraAnchorRes>,
 ) {
-  if let Some(mut transform) = et.main_camera.and_then(|id| query.get_mut(id).ok()) {
-    for event in mouse_wheel.read() {
-      let zoom_amount = event.y * 0.005;
-      transform.translation.z = (transform.translation.z - zoom_amount).clamp(0.01, 40.0);
-      transform.look_at(Vec3::ZERO, Vec3::Y);
-    }
+  for event in mouse_wheel.read() {
+    let zoom_amount = event.y * 0.005;
+    res.current.update_zoom(zoom_amount);
   }
 }
 
 pub fn update_mobile_zoom(
   touches: Res<bevy::input::touch::Touches>,
-  et: Res<EntityTable>,
-  mut query: Query<&mut Transform>,
+  mut res: ResMut<CameraAnchorRes>,
 ) {
   let active: Vec<_> = touches.iter().collect();
   if active.len() != 2 {
     return;
   }
-  if let Some(mut transform) = et.main_camera.and_then(|id| query.get_mut(id).ok()) {
-    let pinch_delta = active[0].position().distance(active[1].position())
-      - active[0]
-        .previous_position()
-        .distance(active[1].previous_position());
-    if pinch_delta.abs() > 0.1 {
-      transform.translation.z = (transform.translation.z - pinch_delta * 0.05).clamp(0.01, 40.0);
-      transform.look_at(Vec3::ZERO, Vec3::Y);
-    }
+  let pinch_delta = active[0].position().distance(active[1].position())
+    - active[0]
+      .previous_position()
+      .distance(active[1].previous_position());
+  if pinch_delta.abs() > 0.1 {
+    res.current.update_zoom(pinch_delta * 0.05);
+  }
+}
+
+pub fn sync_camera_transforms(
+  res: Res<CameraAnchorRes>,
+  et: Res<EntityTable>,
+  mut query: Query<&mut Transform>,
+) {
+  let Some(anchor_id) = et.main_anchor else {
+    return;
+  };
+  let Some(camera_id) = et.main_camera else {
+    return;
+  };
+
+  // 1. Update Anchor
+  if let Ok(mut transform) = query.get_mut(anchor_id) {
+    transform.translation = res.current.anchor;
+  }
+
+  // 2. Update Camera (The child)
+  //   let Some(camera_id) = res.camera_id else { return; };
+  if let Ok(mut transform) = query.get_mut(camera_id) {
+    let offset = res.current.get_camera_offset();
+    transform.translation = offset;
+    // Look at the anchor. Since the camera is a child,
+    // looking at Vec3::ZERO is looking at the parent's origin.
+    transform.look_at(Vec3::ZERO, Vec3::Y);
   }
 }

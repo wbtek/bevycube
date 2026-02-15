@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 use crate::EntityTable;
+use bevy::prelude::EaseFunction::{BounceOut, ElasticOut};
 use bevy::prelude::*;
 use std::f32::consts::PI;
 
@@ -29,7 +30,10 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
   fn build(&self, app: &mut App) {
-    app.add_systems(Update, (update_camera_zoom, update_mobile_zoom));
+    app.add_systems(
+      Update,
+      (update_camera_zoom, update_mobile_zoom, update_camera_motion),
+    );
   }
 }
 
@@ -104,6 +108,7 @@ pub struct CameraMotion {
   pub from: CameraParams,
   pub target: CameraParams,
   pub timer: Timer,
+  pub peak_zoom: f32,
 }
 
 #[derive(Resource)]
@@ -126,23 +131,34 @@ impl Default for CameraAnchorRes {
 }
 
 impl CameraAnchorRes {
-  /// Stores current state and teleports to target
   pub fn request_menu(&mut self, target: CameraParams) {
     let mut clamp = target;
-    clamp.zoom = clamp.zoom.clamp(0.01, 0.40);
+    clamp.zoom = clamp.zoom.clamp(0.01, 40.0);
     clamp.slope = clamp.slope.clamp(0.0, 1.5);
 
     self.history.push(self.current);
-    self.current = clamp;
+
+    // Calculate a peak zoom proportional to distance for the "wave" effect
+    let dist = self.current.anchor.distance(clamp.anchor);
+    let peak = (self.current.zoom.max(clamp.zoom) + dist * 0.5).clamp(0.01, 40.0);
+
+    self.in_motion = Some(CameraMotion {
+      from: self.current,
+      target: clamp,
+      timer: Timer::from_seconds(1.5, TimerMode::Once),
+      peak_zoom: peak,
+    });
   }
 
-  /// Returns to previous state or default
   pub fn request_back(&mut self) {
-    if let Some(previous_state) = self.history.pop() {
-      self.current = previous_state;
-    } else {
-      self.current = CameraParams::default();
-    }
+    let target = self.history.pop().unwrap_or_else(CameraParams::default);
+
+    self.in_motion = Some(CameraMotion {
+      from: self.current,
+      target,
+      timer: Timer::from_seconds(1.5, TimerMode::Once),
+      peak_zoom: (self.current.zoom.max(target.zoom) + 2.0).clamp(0.01, 40.0),
+    });
   }
 }
 
@@ -233,5 +249,44 @@ pub fn sync_camera_transforms(
     let offset = res.current.get_camera_offset();
     transform.translation = offset;
     transform.look_at(Vec3::ZERO, Vec3::Y);
+  }
+}
+
+pub fn update_camera_motion(time: Res<Time>, mut res: ResMut<CameraAnchorRes>) {
+  // Move the motion out of the resource to avoid double-borrowing 'res'
+  let Some(mut motion) = res.in_motion.take() else {
+    return;
+  };
+
+  motion.timer.tick(time.delta());
+  let t = motion.timer.fraction();
+
+  // Easing curves
+  let elastic_t = bevy::prelude::EaseFunction::ElasticOut.sample_unchecked(t);
+  let bounce_t = bevy::prelude::EaseFunction::BounceOut.sample_unchecked(t);
+
+  // 1. Anchor: Elastic slide
+  res.current.anchor = motion.from.anchor.lerp(motion.target.anchor, elastic_t);
+
+  // 2. Zoom: Bell curve wave effect
+  let zoom_t = 1.0 - (2.0 * t - 1.0).powi(2);
+  res.current.zoom = motion.from.zoom.lerp(motion.target.zoom, t)
+    + (motion.peak_zoom - motion.from.zoom.max(motion.target.zoom)) * zoom_t;
+
+  // 3. Direction: Linear rotation
+  res.current.direction = motion
+    .from
+    .direction
+    .lerp(motion.target.direction, elastic_t);
+
+  // 4. Slope: Handled by your get_camera_offset, but clamped here
+  res.current.slope = motion.from.slope.lerp(motion.target.slope, bounce_t);
+
+  if motion.timer.just_finished() {
+    res.current = motion.target;
+    res.in_motion = None;
+  } else {
+    // Put it back to continue the motion next frame
+    res.in_motion = Some(motion);
   }
 }

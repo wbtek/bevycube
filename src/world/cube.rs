@@ -157,6 +157,14 @@ pub fn handle_jump_request(
 
     // Temporary test logic for Right-Click -- ddt start
     // Instead of orbiting, test the menu teleport
+    camera_res.request_back();
+    // end ddt
+    click.propagate(false);
+    return;
+  }
+  /*
+    // Temporary test logic for Right-Click -- ddt start
+    // Instead of orbiting, test the menu teleport
     let target_menu = CameraParams {
       anchor: Vec3::new(0.0, 0.0, -7.5), // Main Menu location
       zoom: 0.,
@@ -166,9 +174,7 @@ pub fn handle_jump_request(
     };
     camera_res.request_menu(target_menu);
     // end ddt
-    click.propagate(false);
-    return;
-  }
+  */
   click.propagate(false);
   let Some(hit_pos) = click.hit.position else {
     return;

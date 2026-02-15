@@ -310,7 +310,7 @@ pub fn spawn_ocean(
       } else if drag.button == PointerButton::Secondary {
         res
           .current
-          .update_orbit(-drag.delta.x * 0.005, -drag.delta.y * 0.005);
+          .update_orbit(-drag.delta.x * 0.005, drag.delta.y * 0.005);
         drag.propagate(false);
       }
     },

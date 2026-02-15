@@ -52,7 +52,7 @@ impl Default for CameraParams {
   fn default() -> Self {
     Self {
       anchor: Vec3::ZERO,
-      track_near_end_y: 7.5,
+      track_near_end_y: 4.0,
       direction: 0.0,
       slope: 0.0,
       zoom: 15.0,

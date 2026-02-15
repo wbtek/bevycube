@@ -23,6 +23,7 @@
 
 use crate::EntityTable;
 use bevy::prelude::*;
+use std::f32::consts::PI;
 
 pub struct CameraPlugin;
 
@@ -61,7 +62,15 @@ impl Default for CameraParams {
 
 impl CameraParams {
   pub fn update_pan(&mut self, delta_x: f32, delta_y: f32) {
-    self.anchor += Vec3::new(delta_x, 0.0, delta_y);
+    let (sin, cos) = self.direction.sin_cos();
+    let rotated_x = delta_x * cos + delta_y * sin;
+    let rotated_z = -delta_x * sin + delta_y * cos;
+    self.anchor += Vec3::new(rotated_x, 0.0, rotated_z);
+  }
+
+  pub fn update_orbit(&mut self, delta_x: f32, delta_y: f32) {
+    self.slope = (self.slope + delta_y).clamp(0.0, 1.5);
+    self.direction = (self.direction + delta_x).rem_euclid(PI * 2.);
   }
 
   pub fn update_zoom(&mut self, delta: f32) {
@@ -155,12 +164,29 @@ pub fn update_mobile_zoom(
   if active.len() != 2 {
     return;
   }
-  let pinch_delta = active[0].position().distance(active[1].position())
-    - active[0]
-      .previous_position()
-      .distance(active[1].previous_position());
+
+  // --- 1. ZOOM LOGIC ---
+  let curr_dist = active[0].position().distance(active[1].position());
+  let prev_dist = active[0]
+    .previous_position()
+    .distance(active[1].previous_position());
+  let pinch_delta = curr_dist - prev_dist;
+
   if pinch_delta.abs() > 0.1 {
-    res.current.update_zoom(pinch_delta * 0.05);
+    res.current.update_zoom(pinch_delta * 0.05); //
+  }
+
+  // --- 2. ORBIT LOGIC (The "Right Drag" substitute) ---
+  // Calculate the average delta of both fingers
+  let delta_0 = active[0].position() - active[0].previous_position();
+  let delta_1 = active[1].position() - active[1].previous_position();
+
+  // If both fingers are moving in a similar direction (Dot product is positive)
+  if delta_0.dot(delta_1) > 0.0 {
+    let avg_delta = (delta_0 + delta_1) / 2.0;
+    res
+      .current
+      .update_orbit(-avg_delta.x * 0.005, avg_delta.y * 0.005);
   }
 }
 

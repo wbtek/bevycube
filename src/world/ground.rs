@@ -58,10 +58,17 @@ pub fn spawn_ground(
 
   commands.entity(ground_id).observe(
     |mut drag: On<Pointer<Drag>>, mut res: ResMut<camera::CameraAnchorRes>| {
-      drag.propagate(false);
-      res
-        .current
-        .update_pan(-drag.delta.x * 0.015, -drag.delta.y * 0.015);
+      if drag.button == PointerButton::Primary {
+        res
+          .current
+          .update_pan(-drag.delta.x * 0.015, -drag.delta.y * 0.015);
+        drag.propagate(false);
+      } else if drag.button == PointerButton::Secondary {
+        res
+          .current
+          .update_orbit(-drag.delta.x * 0.005, -drag.delta.y * 0.005);
+        drag.propagate(false);
+      }
     },
   );
 

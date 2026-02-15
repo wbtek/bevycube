@@ -54,7 +54,7 @@ impl Default for CameraParams {
       anchor: Vec3::ZERO,
       track_near_end_y: 4.0,
       direction: 0.0,
-      slope: 0.0,
+      slope: PI * 0.5 * 0.2,
       zoom: 15.0,
     }
   }

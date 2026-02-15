@@ -147,6 +147,11 @@ pub fn handle_jump_request(
   jump_check: Query<&JumpData>,
   global_query: Query<&GlobalTransform>,
 ) {
+  if click.button == PointerButton::Secondary {
+//    request_main_menu();
+    click.propagate(false);
+    return;
+  }
   click.propagate(false);
   if click.duration.as_millis() > 250 {
     return;

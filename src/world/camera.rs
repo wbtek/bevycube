@@ -111,6 +111,7 @@ pub struct CameraAnchorRes {
   pub current: CameraParams,
   pub in_motion: Option<CameraMotion>,
   pub camera_id: Option<Entity>,
+  pub history: Vec<CameraParams>,
 }
 
 impl Default for CameraAnchorRes {
@@ -119,6 +120,28 @@ impl Default for CameraAnchorRes {
       current: CameraParams::default(),
       in_motion: None,
       camera_id: None,
+      history: Vec::new(),
+    }
+  }
+}
+
+impl CameraAnchorRes {
+  /// Stores current state and teleports to target
+  pub fn request_menu(&mut self, target: CameraParams) {
+    let mut clamp = target;
+    clamp.zoom = clamp.zoom.clamp(0.01, 0.40);
+    clamp.slope = clamp.slope.clamp(0.0, 1.5);
+
+    self.history.push(self.current);
+    self.current = clamp;
+  }
+
+  /// Returns to previous state or default
+  pub fn request_back(&mut self) {
+    if let Some(previous_state) = self.history.pop() {
+      self.current = previous_state;
+    } else {
+      self.current = CameraParams::default();
     }
   }
 }

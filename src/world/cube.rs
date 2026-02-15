@@ -140,22 +140,36 @@ pub fn spawn_rotating_cube(
   cube_id
 }
 
+use crate::world::camera::*; // ddt
 pub fn handle_jump_request(
   mut click: On<Pointer<Click>>,
   mut commands: Commands,
   et: Res<EntityTable>,
   jump_check: Query<&JumpData>,
   global_query: Query<&GlobalTransform>,
+  mut camera_res: ResMut<CameraAnchorRes>,
 ) {
+  if click.duration.as_millis() > 250 {
+    return;
+  }
   if click.button == PointerButton::Secondary {
     //    request_main_menu();
+
+    // Temporary test logic for Right-Click -- ddt start
+    // Instead of orbiting, test the menu teleport
+    let target_menu = CameraParams {
+      anchor: Vec3::new(0.0, 0.0, -7.5), // Main Menu location
+      zoom: 0.,
+      //      direction: 0.0,
+      //      slope: 0.314159,
+      ..default()
+    };
+    camera_res.request_menu(target_menu);
+    // end ddt
     click.propagate(false);
     return;
   }
   click.propagate(false);
-  if click.duration.as_millis() > 250 {
-    return;
-  }
   let Some(hit_pos) = click.hit.position else {
     return;
   };

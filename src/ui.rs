@@ -23,6 +23,7 @@
 
 pub mod instructions_ui;
 pub mod main_ui;
+pub mod roundel_ui;
 use crate::{EntityTable, ImageFilterMode, ImageSampler, ImageSamplerDescriptor, StitchedRoundel};
 use bevy::prelude::*;
 

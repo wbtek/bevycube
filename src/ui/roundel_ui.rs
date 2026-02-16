@@ -1,25 +1,17 @@
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 // use crate::ui::{instructions_ui, ocean_ui, roundel_ui, about_ui};
-use crate::ui::roundel_ui;
 use crate::EntityTable;
 use bevy::prelude::*;
 
 // --- CONSTANTS & DATA TABLES ---
 
-pub const MENU_LOCATION: Vec3 = Vec3::new(0.0, 0.01, -7.5);
-const IMAGE_PATH: &str = "embedded://bevycube/media/menu_main.jpg";
+pub const MENU_LOCATION: Vec3 = Vec3::new(7.5, 0.01, 0.0);
+const IMAGE_PATH: &str = "embedded://bevycube/media/menu_roundel.jpg";
 
 pub enum MenuAction {
   Execute(fn(&mut CameraAnchorRes)),
+  ToggleAnisotropy(u16), // Example setting action
   Back,
-}
-
-pub struct MenuItem {
-  pub x: f32,
-  pub y: f32,
-  pub w: f32,
-  pub h: f32,
-  pub action: MenuAction,
 }
 
 const HITBOX_TABLE: &[MenuItem] = &[
@@ -30,16 +22,8 @@ const HITBOX_TABLE: &[MenuItem] = &[
     h: 29.,
     action: MenuAction::Back,
   },
-  MenuItem {
-    x: 79.,
-    y: 102.,
-    w: 235.,
-    h: 38.,
-    action: MenuAction::Execute(roundel_ui::request_view),
-  },
+  // Coordinates for your anisotropy/mipmap buttons go here
 ];
-
-// --- LOGIC ---
 
 pub fn request_view(camera_res: &mut CameraAnchorRes) {
   camera_res.request_menu(CameraParams {
@@ -49,6 +33,16 @@ pub fn request_view(camera_res: &mut CameraAnchorRes) {
   });
 }
 
+pub struct MenuItem {
+  pub x: f32,
+  pub y: f32,
+  pub w: f32,
+  pub h: f32,
+  pub action: MenuAction,
+}
+
+// --- LOGIC ---
+
 /// Maps local -2.5..2.5 back to 0..512
 fn to_pixel(local_coord: f32) -> f32 {
   (local_coord * 512.0 / 5.0) + 256.0
@@ -56,7 +50,7 @@ fn to_pixel(local_coord: f32) -> f32 {
 
 // --- SPAWNING ---
 
-pub fn spawn_main_menu(
+pub fn spawn_roundel_menu(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
   materials: &mut ResMut<Assets<StandardMaterial>>,
@@ -65,7 +59,7 @@ pub fn spawn_main_menu(
 ) {
   let menu_id = commands
     .spawn((
-      Name::new("Main Menu"),
+      Name::new("Roundel Menu"),
       Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
       MeshMaterial3d(materials.add(StandardMaterial {
         base_color_texture: Some(asset_server.load(IMAGE_PATH)),
@@ -108,10 +102,8 @@ pub fn spawn_main_menu(
               ev.propagate(false);
               camera_res.request_back()
             }
-            MenuAction::Execute(func) => {
-              ev.propagate(false);
-              func(&mut camera_res)
-            }
+            MenuAction::Execute(func) => func(&mut camera_res),
+            _ => {}
           }
           break;
         }

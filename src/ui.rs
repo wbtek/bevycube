@@ -24,8 +24,104 @@
 pub mod instructions_ui;
 pub mod main_ui;
 pub mod roundel_ui;
+use crate::world::camera::CameraAnchorRes;
 use crate::{EntityTable, ImageFilterMode, ImageSampler, ImageSamplerDescriptor, StitchedRoundel};
 use bevy::prelude::*;
+
+// ============================================================================
+// NEW MENU LIBRARY (Bevy 0.18 Data-Driven UI)
+// ============================================================================
+
+/// Shared actions for all data-driven menus
+pub enum MenuAction {
+  Execute(fn(&mut CameraAnchorRes)),
+  ToggleAnisotropy(u16),
+  Back,
+}
+
+/// Hitbox definition using pixel coordinates (0-512)
+pub struct MenuItem {
+  pub x: u32,
+  pub y: u32,
+  pub w: u32,
+  pub h: u32,
+  pub action: MenuAction,
+}
+
+/// Maps local plane coordinate (-2.5..2.5) to pixel space (0..512)
+pub fn to_pixel(local_coord: f32) -> f32 {
+  (local_coord * 512.0 / 5.0) + 256.0
+}
+
+/// Attaches a standard observer to a menu entity to handle table-based hits
+pub fn attach_menu_interaction(
+  commands: &mut Commands,
+  entity: Entity,
+  hitbox_table: &'static [MenuItem],
+) {
+  commands.entity(entity).observe(
+    move |mut ev: On<Pointer<Click>>,
+          mut camera_res: ResMut<CameraAnchorRes>,
+          query: Query<&GlobalTransform>| {
+      let Some(hit_world_pos) = ev.hit.position else {
+        return;
+      };
+      let Ok(menu_gt) = query.get(ev.event_target()) else {
+        return;
+      };
+
+      // Convert world hit to local plane space, then to pixel coordinates
+      let local_pos = menu_gt.affine().inverse().transform_point3(hit_world_pos);
+      let px = to_pixel(local_pos.x) as u32;
+      let py = to_pixel(local_pos.z) as u32; // Plane3d is XZ surface
+
+      for item in hitbox_table {
+        if px >= item.x && px <= (item.x + item.w) && py >= item.y && py <= (item.y + item.h) {
+          ev.propagate(false);
+          match item.action {
+            MenuAction::Back => camera_res.request_back(),
+            MenuAction::Execute(func) => func(&mut camera_res),
+            _ => {} // Specific toggles handled in menu-specific extensions later
+          }
+          break;
+        }
+      }
+    },
+  );
+}
+
+/// Standard recipe for spawning a 5.0x5.0 menu plane
+pub fn spawn_menu_plane(
+  commands: &mut Commands,
+  meshes: &mut ResMut<Assets<Mesh>>,
+  materials: &mut ResMut<Assets<StandardMaterial>>,
+  asset_server: &Res<AssetServer>,
+  label: &str,
+  image_path: &'static str,
+  location: Vec3,
+  hitbox_table: &'static [MenuItem],
+) -> Entity {
+  let id = commands
+    .spawn((
+      Name::new(label.to_string()),
+      Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+      MeshMaterial3d(materials.add(StandardMaterial {
+        base_color_texture: Some(asset_server.load(image_path)),
+        alpha_mode: AlphaMode::Add,
+        reflectance: 0.0,
+        ..default()
+      })),
+      Transform::from_translation(location),
+    ))
+    .id();
+
+  attach_menu_interaction(commands, id, hitbox_table);
+  id
+}
+
+// ============================================================================
+// END NEW LIBRARY / START LEGACY SETTINGS UI
+// ============================================================================
 
 pub struct SettingsUiPlugin;
 impl Plugin for SettingsUiPlugin {

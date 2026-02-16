@@ -152,16 +152,8 @@ pub fn handle_jump_request(
   if click.duration.as_millis() > 250 {
     return;
   }
-  // push on right click -- ddt start
   if click.button == PointerButton::Secondary {
-    let target_menu = CameraParams {
-      anchor: Vec3::new(0.0, 0.0, -7.5), // Main Menu location
-      zoom: 0.,
-      //      direction: 0.0,
-      //      slope: 0.314159,
-      ..default()
-    };
-    camera_res.request_menu(target_menu);
+    crate::ui::main_ui::request_view(&mut camera_res);
     click.propagate(false);
     return;
   }

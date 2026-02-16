@@ -16,10 +16,10 @@ pub enum MenuAction {
 
 const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
-    x: 354.,
-    y: 57.,
-    w: 74.,
-    h: 29.,
+    x: 354,
+    y: 57,
+    w: 74,
+    h: 29,
     action: MenuAction::Back,
   },
   // Coordinates for your anisotropy/mipmap buttons go here
@@ -34,10 +34,10 @@ pub fn request_view(camera_res: &mut CameraAnchorRes) {
 }
 
 pub struct MenuItem {
-  pub x: f32,
-  pub y: f32,
-  pub w: f32,
-  pub h: f32,
+  pub x: u32,
+  pub y: u32,
+  pub w: u32,
+  pub h: u32,
   pub action: MenuAction,
 }
 
@@ -92,8 +92,8 @@ pub fn spawn_roundel_menu(
 
       let local_pos = menu_gt.affine().inverse().transform_point3(hit_world_pos);
 
-      let px = to_pixel(local_pos.x);
-      let py = to_pixel(local_pos.z);
+      let px = to_pixel(local_pos.x) as u32;
+      let py = to_pixel(local_pos.z) as u32;
 
       for item in HITBOX_TABLE {
         if px >= item.x && px <= (item.x + item.w) && py >= item.y && py <= (item.y + item.h) {

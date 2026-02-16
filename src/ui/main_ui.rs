@@ -15,26 +15,26 @@ pub enum MenuAction {
 }
 
 pub struct MenuItem {
-  pub x: f32,
-  pub y: f32,
-  pub w: f32,
-  pub h: f32,
+  pub x: u32,
+  pub y: u32,
+  pub w: u32,
+  pub h: u32,
   pub action: MenuAction,
 }
 
 const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
-    x: 354.,
-    y: 57.,
-    w: 74.,
-    h: 29.,
+    x: 354,
+    y: 57,
+    w: 74,
+    h: 29,
     action: MenuAction::Back,
   },
   MenuItem {
-    x: 79.,
-    y: 102.,
-    w: 235.,
-    h: 38.,
+    x: 79,
+    y: 102,
+    w: 235,
+    h: 38,
     action: MenuAction::Execute(roundel_ui::request_view),
   },
 ];
@@ -98,8 +98,8 @@ pub fn spawn_main_menu(
 
       let local_pos = menu_gt.affine().inverse().transform_point3(hit_world_pos);
 
-      let px = to_pixel(local_pos.x);
-      let py = to_pixel(local_pos.z);
+      let px = to_pixel(local_pos.x) as u32;
+      let py = to_pixel(local_pos.z) as u32;
 
       for item in HITBOX_TABLE {
         if px >= item.x && px <= (item.x + item.w) && py >= item.y && py <= (item.y + item.h) {

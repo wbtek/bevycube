@@ -135,6 +135,7 @@ impl CameraAnchorRes {
     let mut clamp = target;
     clamp.zoom = clamp.zoom.clamp(0.01, 40.0);
     clamp.slope = clamp.slope.clamp(0.0, 1.5);
+    clamp.direction = (clamp.direction + PI).rem_euclid(PI * 2.) - PI;
 
     self.history.push(self.current);
 

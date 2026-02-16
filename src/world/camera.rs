@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 use crate::EntityTable;
-use bevy::prelude::EaseFunction::{BounceOut, ElasticOut};
+use bevy::prelude::EaseFunction::*;
 use bevy::prelude::*;
 use std::f32::consts::PI;
 
@@ -131,35 +131,32 @@ impl Default for CameraAnchorRes {
 }
 
 impl CameraAnchorRes {
-  pub fn request_menu(&mut self, target: CameraParams) {
-    let mut clamp = target;
-    clamp.zoom = clamp.zoom.clamp(0.01, 40.0);
-    clamp.slope = clamp.slope.clamp(0.0, 1.5);
-    clamp.direction = (clamp.direction + PI).rem_euclid(PI * 2.) - PI;
+  fn set_motion(&mut self, from: CameraParams, to: CameraParams) {
+    let mut target = to;
 
-    self.history.push(self.current);
+    let direction_delta = to.direction - from.direction;
+    let normalized_delta = (direction_delta + PI).rem_euclid(2. * PI) - PI;
+    target.direction = from.direction + normalized_delta;
+    target.zoom = to.zoom.clamp(0.01, 40.0);
+    target.slope = to.slope.clamp(0.0, 1.5);
 
-    // Calculate a peak zoom proportional to distance for the "wave" effect
-    let dist = self.current.anchor.distance(clamp.anchor);
-    let peak = (self.current.zoom.max(clamp.zoom) + dist * 0.5).clamp(0.01, 40.0);
-
+    let dist = from.anchor.distance(to.anchor);
     self.in_motion = Some(CameraMotion {
-      from: self.current,
-      target: clamp,
+      from: from,
+      target: target,
       timer: Timer::from_seconds(1.5, TimerMode::Once),
-      peak_zoom: peak,
+      peak_zoom: (self.current.zoom.max(to.zoom) + dist).clamp(0.01, 40.0),
     });
+  }
+
+  pub fn request_menu(&mut self, target: CameraParams) {
+    self.history.push(self.current);
+    self.set_motion(self.current, target);
   }
 
   pub fn request_back(&mut self) {
     let target = self.history.pop().unwrap_or_else(CameraParams::default);
-
-    self.in_motion = Some(CameraMotion {
-      from: self.current,
-      target,
-      timer: Timer::from_seconds(1.5, TimerMode::Once),
-      peak_zoom: (self.current.zoom.max(target.zoom) + 2.0).clamp(0.01, 40.0),
-    });
+    self.set_motion(self.current, target);
   }
 }
 
@@ -260,28 +257,32 @@ pub fn update_camera_motion(time: Res<Time>, mut res: ResMut<CameraAnchorRes>) {
   };
 
   motion.timer.tick(time.delta());
-  let t = motion.timer.fraction();
+  let t = motion.timer.fraction().clamp(0., 1.);
 
   // Easing curves
-  let elastic_t = bevy::prelude::EaseFunction::ElasticOut.sample_unchecked(t);
-  let bounce_t = bevy::prelude::EaseFunction::BounceOut.sample_unchecked(t);
+  let elastic_t = ElasticIn.sample_unchecked(t);
+  let bounce_t = BounceOut.sample_unchecked(t);
 
   // 1. Anchor: Elastic slide
-  res.current.anchor = motion.from.anchor.lerp(motion.target.anchor, elastic_t);
+  res.current.anchor = motion.from.anchor.lerp(
+    motion.target.anchor,
+    (elastic_t + bounce_t + bounce_t + t + t) / 5.,
+  );
 
   // 2. Zoom: Bell curve wave effect
   let zoom_t = 1.0 - (2.0 * t - 1.0).powi(2);
-  res.current.zoom = motion.from.zoom.lerp(motion.target.zoom, t)
+  res.current.zoom = motion
+    .from
+    .zoom
+    .lerp(motion.target.zoom, (bounce_t + t) / 2.)
     + (motion.peak_zoom - motion.from.zoom.max(motion.target.zoom)) * zoom_t;
+  // res.current.zoom = motion.from.zoom.lerp(motion.target.zoom, bounce_t);
 
   // 3. Direction: Linear rotation
-  res.current.direction = motion
-    .from
-    .direction
-    .lerp(motion.target.direction, elastic_t);
+  res.current.direction = motion.from.direction.lerp(motion.target.direction, t);
 
   // 4. Slope: Handled by your get_camera_offset, but clamped here
-  res.current.slope = motion.from.slope.lerp(motion.target.slope, bounce_t);
+  res.current.slope = motion.from.slope.lerp(motion.target.slope, t);
 
   if motion.timer.just_finished() {
     res.current = motion.target;

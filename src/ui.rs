@@ -21,8 +21,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+pub mod about_ui;
 pub mod instructions_ui;
 pub mod main_ui;
+pub mod ocean_ui;
 pub mod roundel_ui;
 use crate::world::camera::CameraAnchorRes;
 use crate::{EntityTable, ImageFilterMode, ImageSampler, ImageSamplerDescriptor, StitchedRoundel};

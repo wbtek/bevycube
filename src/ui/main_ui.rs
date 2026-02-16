@@ -1,4 +1,4 @@
-use crate::ui::{self, roundel_ui, MenuAction, MenuItem};
+use crate::ui::{self, about_ui, instructions_ui, ocean_ui, roundel_ui, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::prelude::*;
@@ -15,11 +15,32 @@ const HITBOX_TABLE: &[MenuItem] = &[
     action: MenuAction::Back,
   },
   MenuItem {
+    x: 80,
+    y: 147,
+    w: 207,
+    h: 38,
+    action: MenuAction::Execute(ocean_ui::request_view),
+  },
+  MenuItem {
     x: 79,
     y: 102,
     w: 235,
     h: 38,
     action: MenuAction::Execute(roundel_ui::request_view),
+  },
+  MenuItem {
+    x: 79,
+    y: 192,
+    w: 167,
+    h: 29,
+    action: MenuAction::Execute(instructions_ui::request_view),
+  },
+  MenuItem {
+    x: 80,
+    y: 237,
+    w: 85,
+    h: 33,
+    action: MenuAction::Execute(about_ui::request_view),
   },
 ];
 

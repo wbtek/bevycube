@@ -3,8 +3,8 @@ use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::prelude::*;
 
-pub const MENU_LOCATION: Vec3 = Vec3::new(-7.5, 0.01, -7.5);
-const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_instructions.jpg";
+pub const MENU_LOCATION: Vec3 = Vec3::new(-7.5, 0.01, 0.0);
+const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_about.jpg";
 
 const HITBOX_TABLE: &[MenuItem] = &[MenuItem {
   x: 354,
@@ -14,7 +14,7 @@ const HITBOX_TABLE: &[MenuItem] = &[MenuItem {
   action: MenuAction::Back,
 }];
 
-/// Used by other modules to navigate to the instructions
+/// Used by other modules to navigate to the About menu
 pub fn request_view(camera_res: &mut CameraAnchorRes) {
   camera_res.request_menu(CameraParams {
     anchor: MENU_LOCATION,
@@ -23,7 +23,7 @@ pub fn request_view(camera_res: &mut CameraAnchorRes) {
   });
 }
 
-pub fn spawn_instructions_menu(
+pub fn spawn_about_menu(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
   materials: &mut ResMut<Assets<StandardMaterial>>,
@@ -35,13 +35,13 @@ pub fn spawn_instructions_menu(
     meshes,
     materials,
     asset_server,
-    "Instructions Menu",
+    "About Menu",
     IMAGE_PATH,
     MENU_LOCATION,
     HITBOX_TABLE,
   );
 
-  et.instructions_menu = Some(menu_id);
+  et.about_menu = Some(menu_id);
 
   if let Some(ground) = et.ground {
     commands.entity(ground).add_child(menu_id);

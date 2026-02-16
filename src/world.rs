@@ -168,6 +168,14 @@ pub fn setup(
     &mut et,
   );
 
+  crate::ui::ocean_ui::spawn_ocean_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
   crate::ui::roundel_ui::spawn_roundel_menu(
     &mut commands,
     &mut meshes,
@@ -177,6 +185,14 @@ pub fn setup(
   );
 
   crate::ui::instructions_ui::spawn_instructions_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
+  crate::ui::about_ui::spawn_about_menu(
     &mut commands,
     &mut meshes,
     &mut materials,

@@ -22,6 +22,7 @@
 // SOFTWARE.
 
 use crate::{world::ocean::OceanBuffer, EntityTable};
+use crate::world::camera::*; // ddt
 use bevy::ecs::relationship::Relationship;
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
 use bevy::prelude::*;
@@ -140,7 +141,6 @@ pub fn spawn_rotating_cube(
   cube_id
 }
 
-use crate::world::camera::*; // ddt
 pub fn handle_jump_request(
   mut click: On<Pointer<Click>>,
   mut commands: Commands,
@@ -152,19 +152,8 @@ pub fn handle_jump_request(
   if click.duration.as_millis() > 250 {
     return;
   }
+  // push on right click -- ddt start
   if click.button == PointerButton::Secondary {
-    //    request_main_menu();
-
-    // Temporary test logic for Right-Click -- ddt start
-    // Instead of orbiting, test the menu teleport
-    camera_res.request_back();
-    // end ddt
-    click.propagate(false);
-    return;
-  }
-  /*
-    // Temporary test logic for Right-Click -- ddt start
-    // Instead of orbiting, test the menu teleport
     let target_menu = CameraParams {
       anchor: Vec3::new(0.0, 0.0, -7.5), // Main Menu location
       zoom: 0.,
@@ -173,8 +162,16 @@ pub fn handle_jump_request(
       ..default()
     };
     camera_res.request_menu(target_menu);
-    // end ddt
-  */
+    click.propagate(false);
+    return;
+  }
+  // pop on middle click
+  if click.button == PointerButton::Middle {
+    camera_res.request_back();
+    click.propagate(false);
+    return;
+  }
+  // end ddt
   click.propagate(false);
   let Some(hit_pos) = click.hit.position else {
     return;

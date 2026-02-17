@@ -6,13 +6,29 @@ use bevy::prelude::*;
 pub const MENU_LOCATION: Vec3 = Vec3::new(-7.5, 0.01, 0.0);
 const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_about.jpg";
 
-const HITBOX_TABLE: &[MenuItem] = &[MenuItem {
-  x: 354,
-  y: 57,
-  w: 74,
-  h: 29,
-  action: MenuAction::Back,
-}];
+const HITBOX_TABLE: &[MenuItem] = &[
+  MenuItem {
+    x: 354,
+    y: 57,
+    w: 74,
+    h: 29,
+    action: MenuAction::Back,
+  },
+  MenuItem {
+    x: 79,
+    y: 252,
+    w: 176,
+    h: 19,
+    action: MenuAction::OpenUrl("https://wbtek.github.io/"),
+  },
+  MenuItem {
+    x: 79,
+    y: 314,
+    w: 133,
+    h: 19,
+    action: MenuAction::OpenUrl("https://wbtek.net/"),
+  },
+];
 
 /// Used by other modules to navigate to the About menu
 pub fn request_view(camera_res: &mut CameraAnchorRes) {

@@ -4,7 +4,7 @@ use crate::EntityTable;
 use bevy::prelude::*;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(0.0, 0.01, -7.5);
-const IMAGE_PATH: &str = "embedded://bevycube/media/menu_main.jpg";
+const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_main.jpg";
 
 const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
@@ -15,18 +15,18 @@ const HITBOX_TABLE: &[MenuItem] = &[
     action: MenuAction::Back,
   },
   MenuItem {
-    x: 80,
-    y: 147,
-    w: 207,
-    h: 38,
-    action: MenuAction::Execute(ocean_ui::request_view),
-  },
-  MenuItem {
     x: 79,
     y: 102,
     w: 235,
     h: 38,
     action: MenuAction::Execute(roundel_ui::request_view),
+  },
+  MenuItem {
+    x: 80,
+    y: 147,
+    w: 207,
+    h: 38,
+    action: MenuAction::Execute(ocean_ui::request_view),
   },
   MenuItem {
     x: 79,

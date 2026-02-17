@@ -27,7 +27,7 @@ Ocean,Mesh 80,357,237,60,29,True,SetMeshSubdiv(80)
 Instructions,Back,354,57,74,29,False,Navigate(Main)
 About,Back,354,57,74,29,False,Navigate(Main)
 About,Github,79,252,176,19,False,OpenUrl("https://wbtek.github.io/")
-About,Home,79,282,143,19,False,OpenUrl("https://wbtek.net/")
+About,Home,79,314,133,19,False,OpenUrl("https://wbtek.net/")
 
 Menus:
 

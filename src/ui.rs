@@ -29,6 +29,7 @@ pub mod roundel_ui;
 use crate::world::camera::CameraAnchorRes;
 use crate::{EntityTable, ImageFilterMode, ImageSampler, ImageSamplerDescriptor, StitchedRoundel};
 use bevy::prelude::*;
+use log::info;
 
 // ============================================================================
 // NEW MENU LIBRARY (Bevy 0.18 Data-Driven UI)
@@ -37,8 +38,14 @@ use bevy::prelude::*;
 /// Shared actions for all data-driven menus
 pub enum MenuAction {
   Execute(fn(&mut CameraAnchorRes)),
-  ToggleAnisotropy(u16),
   Back,
+  // --- STUBBED SETTINGS ACTIONS ---
+  ToggleAnisotropy(u16),
+  SetMipmaps(bool),
+  SetResolution(u8),
+  SetMeshMode(u8),
+  SetMeshSubdiv(u32),
+  OpenUrl(&'static str),
 }
 
 /// Hitbox definition using pixel coordinates (0-512)
@@ -75,7 +82,7 @@ pub fn attach_menu_interaction(
       // Convert world hit to local plane space, then to pixel coordinates
       let local_pos = menu_gt.affine().inverse().transform_point3(hit_world_pos);
       let px = to_pixel(local_pos.x) as u32;
-      let py = to_pixel(local_pos.z) as u32; // Plane3d is XZ surface
+      let py = to_pixel(local_pos.z) as u32;
 
       for item in hitbox_table {
         if px >= item.x && px <= (item.x + item.w) && py >= item.y && py <= (item.y + item.h) {
@@ -83,7 +90,13 @@ pub fn attach_menu_interaction(
           match item.action {
             MenuAction::Back => camera_res.request_back(),
             MenuAction::Execute(func) => func(&mut camera_res),
-            _ => {} // Specific toggles handled in menu-specific extensions later
+            // --- STUBS FOR LOGIC TO BE MOVED LATER ---
+            MenuAction::ToggleAnisotropy(val) => info!("Set Aniso: {}", val),
+            MenuAction::SetMipmaps(val) => info!("Set Mipmaps: {}", val),
+            MenuAction::SetResolution(val) => info!("Set Res: {}", val),
+            MenuAction::SetMeshMode(val) => info!("Set Mesh Mode: {}", val),
+            MenuAction::SetMeshSubdiv(val) => info!("Set Subdiv: {}", val),
+            MenuAction::OpenUrl(url) => info!("Open URL: {}", url),
           }
           break;
         }

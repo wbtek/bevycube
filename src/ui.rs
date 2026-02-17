@@ -96,7 +96,15 @@ pub fn attach_menu_interaction(
             MenuAction::SetResolution(val) => info!("Set Res: {}", val),
             MenuAction::SetMeshMode(val) => info!("Set Mesh Mode: {}", val),
             MenuAction::SetMeshSubdiv(val) => info!("Set Subdiv: {}", val),
-            MenuAction::OpenUrl(url) => info!("Open URL: {}", url),
+            MenuAction::OpenUrl(url) => {
+              info!("Open URL: {}", url);
+              #[cfg(target_arch = "wasm32")]
+              {
+                if let Some(window) = web_sys::window() {
+                  let _ = window.open_with_url_and_target(url, "_blank");
+                }
+              }
+            }
           }
           break;
         }

@@ -1,3 +1,4 @@
+use crate::ui::GlobalSettings;
 use crate::ui::{self, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
@@ -103,5 +104,27 @@ pub fn spawn_ocean_menu(
 
   if let Some(ground) = et.ground {
     commands.entity(ground).add_child(menu_id);
+  }
+}
+
+pub fn sync_ocean_mesh_mode(
+  settings: Res<GlobalSettings>,
+  et: Res<EntityTable>,
+  mut query: Query<&mut Visibility>,
+) {
+  if !settings.is_changed() {
+    return;
+  }
+
+  let entities = [et.ocean_solid, et.ocean_wire, et.ocean_point];
+
+  for (i, opt_ent) in entities.iter().enumerate() {
+    if let Some(mut vis) = opt_ent.and_then(|e| query.get_mut(e).ok()) {
+      *vis = if i as u8 == settings.mesh_mode {
+        Visibility::Visible
+      } else {
+        Visibility::Hidden
+      };
+    }
   }
 }

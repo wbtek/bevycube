@@ -21,6 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::ui::ocean_ui;
+use crate::ui::GlobalSettings;
 use crate::{roundel, world::camera::CameraAnchorRes, EntityTable};
 use bevy::prelude::*;
 
@@ -46,6 +48,7 @@ impl Plugin for WorldPlugin {
     app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
     app.insert_resource(ground::GroundConfig { world_y: -2.0 });
     app.insert_resource(camera::CameraAnchorRes::default());
+    app.insert_resource(GlobalSettings::default());
     app.add_systems(
       FixedUpdate,
       (
@@ -68,6 +71,7 @@ impl Plugin for WorldPlugin {
           disk::rotate_disk,
           cube::update_jump,
           camera::sync_camera_transforms,
+          ocean_ui::sync_ocean_mesh_mode,
         )
           .chain(),
       );

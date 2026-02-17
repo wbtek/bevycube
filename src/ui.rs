@@ -35,6 +35,28 @@ use log::info;
 // NEW MENU LIBRARY (Bevy 0.18 Data-Driven UI)
 // ============================================================================
 
+#[derive(Resource, Debug, Reflect)]
+#[reflect(Resource)]
+pub struct GlobalSettings {
+  pub anisotropy: u16,
+  pub mipmaps: bool,
+  pub resolution_level: u8,
+  pub mesh_mode: u8,
+  pub mesh_subdiv: u32,
+}
+
+impl Default for GlobalSettings {
+  fn default() -> Self {
+    Self {
+      anisotropy: 1,
+      mipmaps: true,
+      resolution_level: 0, // High
+      mesh_mode: 0,        // Solid
+      mesh_subdiv: 20,
+    }
+  }
+}
+
 /// Shared actions for all data-driven menus
 pub enum MenuAction {
   Execute(fn(&mut CameraAnchorRes)),
@@ -71,6 +93,7 @@ pub fn attach_menu_interaction(
   commands.entity(entity).observe(
     move |mut ev: On<Pointer<Click>>,
           mut camera_res: ResMut<CameraAnchorRes>,
+          mut settings: ResMut<GlobalSettings>,
           query: Query<&GlobalTransform>| {
       let Some(hit_world_pos) = ev.hit.position else {
         return;
@@ -90,12 +113,13 @@ pub fn attach_menu_interaction(
           match item.action {
             MenuAction::Back => camera_res.request_back(),
             MenuAction::Execute(func) => func(&mut camera_res),
-            // --- STUBS FOR LOGIC TO BE MOVED LATER ---
-            MenuAction::SetAnisotropy(val) => info!("Set Aniso: {}", val),
-            MenuAction::SetMipmaps(val) => info!("Set Mipmaps: {}", val),
-            MenuAction::SetResolution(val) => info!("Set Res: {}", val),
-            MenuAction::SetMeshMode(val) => info!("Set Mesh Mode: {}", val),
-            MenuAction::SetMeshSubdiv(val) => info!("Set Subdiv: {}", val),
+
+            MenuAction::SetAnisotropy(val) => settings.anisotropy = val,
+            MenuAction::SetMipmaps(val) => settings.mipmaps = val,
+            MenuAction::SetResolution(val) => settings.resolution_level = val,
+            MenuAction::SetMeshMode(val) => settings.mesh_mode = val,
+            MenuAction::SetMeshSubdiv(val) => settings.mesh_subdiv = val,
+
             MenuAction::OpenUrl(url) => {
               info!("Open URL: {}", url);
               #[cfg(target_arch = "wasm32")]

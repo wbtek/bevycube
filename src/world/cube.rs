@@ -125,12 +125,12 @@ pub fn spawn_rotating_cube(
     }
   });
 
-  commands
-    .entity(cube_id)
-    .observe(|mut click: On<Pointer<Click>>, mut camera_res: ResMut<CameraAnchorRes>| {
+  commands.entity(cube_id).observe(
+    |mut click: On<Pointer<Click>>, mut camera_res: ResMut<CameraAnchorRes>| {
       crate::ui::main_ui::request_view(&mut camera_res);
       click.propagate(false);
-    });
+    },
+  );
 
   commands.entity(cube_id).observe(
     |mut drag: On<Pointer<Drag>>, mut settings: ResMut<CubeParms>| {

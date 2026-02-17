@@ -40,7 +40,7 @@ pub enum MenuAction {
   Execute(fn(&mut CameraAnchorRes)),
   Back,
   // --- STUBBED SETTINGS ACTIONS ---
-  ToggleAnisotropy(u16),
+  SetAnisotropy(u16),
   SetMipmaps(bool),
   SetResolution(u8),
   SetMeshMode(u8),
@@ -91,7 +91,7 @@ pub fn attach_menu_interaction(
             MenuAction::Back => camera_res.request_back(),
             MenuAction::Execute(func) => func(&mut camera_res),
             // --- STUBS FOR LOGIC TO BE MOVED LATER ---
-            MenuAction::ToggleAnisotropy(val) => info!("Set Aniso: {}", val),
+            MenuAction::SetAnisotropy(val) => info!("Set Aniso: {}", val),
             MenuAction::SetMipmaps(val) => info!("Set Mipmaps: {}", val),
             MenuAction::SetResolution(val) => info!("Set Res: {}", val),
             MenuAction::SetMeshMode(val) => info!("Set Mesh Mode: {}", val),

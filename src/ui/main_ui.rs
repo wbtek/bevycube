@@ -1,3 +1,4 @@
+use crate::ui::Need::*;
 use crate::ui::{self, about_ui, instructions_ui, ocean_ui, roundel_ui, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
@@ -12,6 +13,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 57,
     w: 74,
     h: 29,
+    diamond: No,
     action: MenuAction::Back,
   },
   MenuItem {
@@ -19,6 +21,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 102,
     w: 235,
     h: 38,
+    diamond: No,
     action: MenuAction::Execute(roundel_ui::request_view),
   },
   MenuItem {
@@ -26,6 +29,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 207,
     h: 38,
+    diamond: No,
     action: MenuAction::Execute(ocean_ui::request_view),
   },
   MenuItem {
@@ -33,6 +37,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 192,
     w: 167,
     h: 29,
+    diamond: No,
     action: MenuAction::Execute(instructions_ui::request_view),
   },
   MenuItem {
@@ -40,6 +45,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 85,
     h: 33,
+    diamond: No,
     action: MenuAction::Execute(about_ui::request_view),
   },
 ];

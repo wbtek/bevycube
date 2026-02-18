@@ -1,3 +1,4 @@
+use crate::ui::Need::*;
 use crate::ui::{self, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
@@ -12,6 +13,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 57,
     w: 74,
     h: 29,
+    diamond: No,
     action: MenuAction::Back,
   },
   MenuItem {
@@ -19,6 +21,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 252,
     w: 176,
     h: 19,
+    diamond: No,
     action: MenuAction::OpenUrl("https://wbtek.github.io/"),
   },
   MenuItem {
@@ -26,6 +29,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 314,
     w: 133,
     h: 19,
+    diamond: No,
     action: MenuAction::OpenUrl("https://wbtek.net/"),
   },
 ];

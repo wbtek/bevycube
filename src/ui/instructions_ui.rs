@@ -1,3 +1,4 @@
+use crate::ui::Need::*;
 use crate::ui::{self, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
@@ -11,6 +12,7 @@ const HITBOX_TABLE: &[MenuItem] = &[MenuItem {
   y: 57,
   w: 74,
   h: 29,
+  diamond: No,
   action: MenuAction::Back,
 }];
 

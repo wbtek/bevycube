@@ -111,7 +111,7 @@ pub fn spawn_ocean_menu(
 pub fn sync_ocean_mesh_mode(
   settings: Res<GlobalSettings>,
   et: Res<EntityTable>,
-  mut query: Query<(&mut Visibility, Option<&mut RenderLayers>)>,
+  mut query: Query<Option<&mut RenderLayers>>,
 ) {
   if !settings.is_changed() {
     return;
@@ -121,24 +121,13 @@ pub fn sync_ocean_mesh_mode(
 
   for (i, opt_ent) in entities.iter().enumerate() {
     if let Some(entity) = *opt_ent {
-      if let Ok((mut vis, opt_layers)) = query.get_mut(entity) {
+      if let Ok(opt_layers) = query.get_mut(entity) {
         let is_active_mode = i as u8 == settings.mesh_mode;
-
-        if i == 0 {
-          // Move to and from layer 1 to hide with children visible
-          *vis = Visibility::Visible;
-          if let Some(mut layers) = opt_layers {
-            *layers = if is_active_mode {
-              RenderLayers::layer(0) // Seen by Camera
-            } else {
-              RenderLayers::layer(1) // Hidden from Camera
-            };
-          }
-        } else {
-          *vis = if is_active_mode {
-            Visibility::Visible
+        if let Some(mut layers) = opt_layers {
+          *layers = if is_active_mode {
+            RenderLayers::layer(0) // Seen by Camera
           } else {
-            Visibility::Hidden
+            RenderLayers::layer(1) // Hidden from Camera
           };
         }
       }

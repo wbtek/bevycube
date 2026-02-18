@@ -283,7 +283,7 @@ pub fn spawn_ocean(
         unlit: false,
         ..default()
       })),
-      Visibility::Hidden,
+      RenderLayers::layer(1),
       Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();
@@ -298,7 +298,7 @@ pub fn spawn_ocean(
         unlit: true,
         ..default()
       })),
-      Visibility::Hidden,
+      RenderLayers::layer(1),
       Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();

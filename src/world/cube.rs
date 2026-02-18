@@ -149,6 +149,7 @@ pub fn handle_jump_request(
   jump_check: Query<&JumpData>,
   global_query: Query<&GlobalTransform>,
   mut camera_res: ResMut<CameraAnchorRes>,
+  water: Res<OceanBuffer>,
 ) {
   if click.duration.as_millis() > 250 {
     return;
@@ -184,13 +185,13 @@ pub fn handle_jump_request(
 
   let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
 
-  if Some(target_entity) == et.ocean {
-    local_target.y += 0.33;
-  } else {
-    local_target.y += 1.;
-  }
+  let mut final_entity = target_entity;
 
-  if Some(target_entity) != et.disk {
+  if Some(target_entity) == et.disk {
+    local_target.y += 1.;
+  } else {
+    final_entity = et.ocean.unwrap();
+    local_target.y = water.get_height(local_target.x, local_target.z) + 0.33 + 0.25;
     local_target = local_target
       .xz()
       .clamp_length_min(5.4)
@@ -205,7 +206,7 @@ pub fn handle_jump_request(
     local_target,
     timer: 0.0,
     duration: 3.0,
-    target_entity,
+    target_entity: final_entity,
     animation: None,
   });
 }
@@ -316,12 +317,12 @@ pub fn apply_buoyancy(
   mut query: Query<&mut Transform, (With<RotatingCube>, Without<JumpData>)>,
   parent_query: Query<&ChildOf>,
 ) {
-  let (Some(cube_id), Some(ocean_id)) = (et.cube, et.ocean) else {
+  let (Some(cube_id), Some(disk_id)) = (et.cube, et.disk) else {
     return;
   };
   if let Ok(mut transform) = query.get_mut(cube_id) {
     if let Ok(parent) = parent_query.get(cube_id) {
-      if parent.get() == ocean_id {
+      if parent.get() != disk_id {
         let x = transform.translation.x;
         let z = transform.translation.z;
 

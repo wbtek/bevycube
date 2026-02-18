@@ -25,6 +25,7 @@ use crate::world::camera;
 use crate::world::camera::CameraAnchorRes;
 use crate::world::ground::GroundConfig;
 use crate::EntityTable;
+use bevy::camera::visibility::RenderLayers;
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 
@@ -267,6 +268,7 @@ pub fn spawn_ocean(
         metallic: 0.2,
         ..default()
       })),
+      RenderLayers::layer(0),
       Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();
@@ -282,6 +284,7 @@ pub fn spawn_ocean(
         ..default()
       })),
       Visibility::Hidden,
+      Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();
   et.ocean_wire = Some(ocean_wire_id);
@@ -296,6 +299,7 @@ pub fn spawn_ocean(
         ..default()
       })),
       Visibility::Hidden,
+      Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();
   et.ocean_point = Some(ocean_point_id);

@@ -2,6 +2,7 @@ use crate::ui::GlobalSettings;
 use crate::ui::{self, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
+use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(7.5, 0.01, -7.5);
@@ -110,21 +111,37 @@ pub fn spawn_ocean_menu(
 pub fn sync_ocean_mesh_mode(
   settings: Res<GlobalSettings>,
   et: Res<EntityTable>,
-  mut query: Query<&mut Visibility>,
+  mut query: Query<(&mut Visibility, Option<&mut RenderLayers>)>,
 ) {
   if !settings.is_changed() {
     return;
   }
 
-  let entities = [et.ocean_solid, et.ocean_wire, et.ocean_point];
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
 
   for (i, opt_ent) in entities.iter().enumerate() {
-    if let Some(mut vis) = opt_ent.and_then(|e| query.get_mut(e).ok()) {
-      *vis = if i as u8 == settings.mesh_mode {
-        Visibility::Visible
-      } else {
-        Visibility::Hidden
-      };
+    if let Some(entity) = *opt_ent {
+      if let Ok((mut vis, opt_layers)) = query.get_mut(entity) {
+        let is_active_mode = i as u8 == settings.mesh_mode;
+
+        if i == 0 {
+          // Move to and from layer 1 to hide with children visible
+          *vis = Visibility::Visible;
+          if let Some(mut layers) = opt_layers {
+            *layers = if is_active_mode {
+              RenderLayers::layer(0) // Seen by Camera
+            } else {
+              RenderLayers::layer(1) // Hidden from Camera
+            };
+          }
+        } else {
+          *vis = if is_active_mode {
+            Visibility::Visible
+          } else {
+            Visibility::Hidden
+          };
+        }
+      }
     }
   }
 }

@@ -61,7 +61,6 @@ impl Default for GlobalSettings {
 pub enum MenuAction {
   Execute(fn(&mut CameraAnchorRes)),
   Back,
-  // --- STUBBED SETTINGS ACTIONS ---
   SetAnisotropy(u16),
   SetMipmaps(bool),
   SetResolution(u8),
@@ -70,12 +69,18 @@ pub enum MenuAction {
   OpenUrl(&'static str),
 }
 
+pub enum Need {
+  No,
+  Yes,
+}
+
 /// Hitbox definition using pixel coordinates (0-512)
 pub struct MenuItem {
   pub x: u32,
   pub y: u32,
   pub w: u32,
   pub h: u32,
+  pub diamond: Need,
   pub action: MenuAction,
 }
 
@@ -336,7 +341,7 @@ pub fn spawn_settings_ui(
       Transform::from_xyz(to_local(107. + 14.), 0.01, to_local(410. + 22.)),
     ))
     .id();
-  et.set_fps = Some(set_fps_id);
+  et.deadbeef = Some(set_fps_id);
   commands.entity(settings_id).add_child(set_fps_id);
 
   commands.entity(settings_id).observe(
@@ -483,7 +488,7 @@ pub fn spawn_settings_ui(
             }
           }
           SetCatType::Mesh => {
-            if let Ok(mut transform) = diamond_query.get_mut(et.set_fps.unwrap()) {
+            if let Ok(mut transform) = diamond_query.get_mut(et.deadbeef.unwrap()) {
               transform.translation =
                 Vec3::new(to_local(x_start + 14.0), 0.01, to_local(y_start + 22.0));
             }

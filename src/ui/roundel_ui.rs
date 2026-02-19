@@ -21,7 +21,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 52,
     h: 29,
-    diamond: Off,
+    diamond: Yes,
     action: MenuAction::SetAnisotropy(16),
   },
   MenuItem {
@@ -29,7 +29,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 40,
     h: 29,
-    diamond: Off,
+    diamond: Yes,
     action: MenuAction::SetAnisotropy(8),
   },
   MenuItem {
@@ -37,7 +37,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 39,
     h: 29,
-    diamond: On,
+    diamond: Yes,
     action: MenuAction::SetAnisotropy(4),
   },
   MenuItem {
@@ -45,7 +45,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 39,
     h: 29,
-    diamond: Off,
+    diamond: Yes,
     action: MenuAction::SetAnisotropy(2),
   },
   MenuItem {
@@ -53,7 +53,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 69,
     h: 38,
-    diamond: Off,
+    diamond: Yes,
     action: MenuAction::SetAnisotropy(1),
   },
   MenuItem {
@@ -61,7 +61,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 62,
     h: 29,
-    diamond: On,
+    diamond: Yes,
     action: MenuAction::SetMipmaps(true),
   },
   MenuItem {
@@ -69,7 +69,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 68,
     h: 38,
-    diamond: Off,
+    diamond: Yes,
     action: MenuAction::SetMipmaps(false),
   },
   // Using 0, 1, 2 for High, Med, Low resolution levels
@@ -78,7 +78,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 327,
     w: 90,
     h: 38,
-    diamond: Off,
+    diamond: Yes,
     action: MenuAction::SetResolution(0),
   },
   MenuItem {
@@ -86,7 +86,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 327,
     w: 136,
     h: 29,
-    diamond: On,
+    diamond: Yes,
     action: MenuAction::SetResolution(1),
   },
   MenuItem {
@@ -94,7 +94,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 328,
     w: 75,
     h: 37,
-    diamond: Off,
+    diamond: Yes,
     action: MenuAction::SetResolution(2),
   },
 ];

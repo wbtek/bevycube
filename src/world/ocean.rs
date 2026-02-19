@@ -268,6 +268,10 @@ pub fn spawn_ocean(
         metallic: 0.2,
         ..default()
       })),
+      bevy::picking::Pickable {
+        is_hoverable: false,
+        should_block_lower: false,
+      },
       RenderLayers::layer(0),
       Transform::from_xyz(0.0, world_y, 0.0),
     ))

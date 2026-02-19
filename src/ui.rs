@@ -48,10 +48,10 @@ pub struct GlobalSettings {
 impl Default for GlobalSettings {
   fn default() -> Self {
     Self {
-      anisotropy: 1,
+      anisotropy: 4,
       mipmaps: true,
-      resolution_level: 0, // High
-      mesh_mode: 0,        // Solid
+      resolution_level: 1, // Medium
+      mesh_mode: 1,        // wire
       mesh_subdiv: 20,
     }
   }

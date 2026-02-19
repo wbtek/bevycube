@@ -23,7 +23,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 97,
     h: 30,
-    diamond: Yes,
+    diamond: Off,
     action: MenuAction::SetMeshMode(0),
   }, // Solid
   MenuItem {
@@ -31,7 +31,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 93,
     h: 29,
-    diamond: Yes,
+    diamond: On,
     action: MenuAction::SetMeshMode(1),
   }, // Wire
   MenuItem {
@@ -39,7 +39,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 147,
     w: 107,
     h: 29,
-    diamond: Yes,
+    diamond: Off,
     action: MenuAction::SetMeshMode(2),
   }, // Points
   MenuItem {
@@ -47,7 +47,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 55,
     h: 29,
-    diamond: Yes,
+    diamond: Off,
     action: MenuAction::SetMeshSubdiv(5),
   },
   MenuItem {
@@ -55,7 +55,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 55,
     h: 29,
-    diamond: Yes,
+    diamond: Off,
     action: MenuAction::SetMeshSubdiv(10),
   },
   MenuItem {
@@ -63,7 +63,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 56,
     h: 29,
-    diamond: Yes,
+    diamond: On,
     action: MenuAction::SetMeshSubdiv(20),
   },
   MenuItem {
@@ -71,7 +71,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 56,
     h: 29,
-    diamond: Yes,
+    diamond: Off,
     action: MenuAction::SetMeshSubdiv(40),
   },
   MenuItem {
@@ -79,7 +79,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     y: 237,
     w: 60,
     h: 29,
-    diamond: Yes,
+    diamond: Off,
     action: MenuAction::SetMeshSubdiv(80),
   },
 ];

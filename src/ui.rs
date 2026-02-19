@@ -71,7 +71,8 @@ pub enum MenuAction {
 
 pub enum Need {
   No,
-  Yes,
+  On,
+  Off,
 }
 
 /// Hitbox definition using pixel coordinates (0-512)

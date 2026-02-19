@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::ui::diamonds;
 use crate::ui::ocean_ui;
 use crate::ui::GlobalSettings;
 use crate::{roundel, world::camera::CameraAnchorRes, EntityTable};
@@ -72,6 +73,7 @@ impl Plugin for WorldPlugin {
           cube::update_jump,
           camera::sync_camera_transforms,
           ocean_ui::sync_ocean_mesh_mode,
+          diamonds::sync_diamonds,
         )
           .chain(),
       );

@@ -5,9 +5,9 @@ use crate::EntityTable;
 use bevy::prelude::*;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(7.5, 0.01, 0.0);
-const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_roundel.jpg";
+pub const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_roundel.jpg";
 
-const HITBOX_TABLE: &[MenuItem] = &[
+pub const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
     x: 354,
     y: 57,
@@ -62,7 +62,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     w: 62,
     h: 29,
     diamond: Yes,
-    action: MenuAction::SetMipmaps(true),
+    action: MenuAction::SetMipmaps(1),
   },
   MenuItem {
     x: 182,
@@ -70,9 +70,8 @@ const HITBOX_TABLE: &[MenuItem] = &[
     w: 68,
     h: 38,
     diamond: Yes,
-    action: MenuAction::SetMipmaps(false),
+    action: MenuAction::SetMipmaps(0),
   },
-  // Using 0, 1, 2 for High, Med, Low resolution levels
   MenuItem {
     x: 111,
     y: 327,
@@ -126,7 +125,7 @@ pub fn spawn_roundel_menu(
     HITBOX_TABLE,
   );
 
-  et.main_menu = Some(menu_id);
+  et.roundel_menu = Some(menu_id);
 
   if let Some(ground) = et.ground {
     commands.entity(ground).add_child(menu_id);

@@ -22,12 +22,12 @@
 // SOFTWARE.
 
 pub mod about_ui;
+pub mod diamonds;
 pub mod instructions_ui;
 pub mod main_ui;
 pub mod ocean_ui;
 pub mod roundel_ui;
 use crate::world::camera::CameraAnchorRes;
-// use crate::{EntityTable, ImageFilterMode, ImageSampler, ImageSamplerDescriptor, StitchedRoundel};
 use bevy::prelude::*;
 use log::info;
 
@@ -35,21 +35,21 @@ use log::info;
 // NEW MENU LIBRARY (Bevy 0.18 Data-Driven UI)
 // ============================================================================
 
-#[derive(Resource, Debug, Reflect)]
+#[derive(Resource, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
 pub struct GlobalSettings {
-  pub anisotropy: u16,
-  pub mipmaps: bool,
-  pub resolution_level: u8,
-  pub mesh_mode: u8,
-  pub mesh_subdiv: u32,
+  pub anisotropy: u32,       // 1, 2, 4, 8, 16
+  pub mipmaps: u32,          // 0: Off, 1: On
+  pub resolution_level: u32, // 0: High, 1: Med, 2: Low
+  pub mesh_mode: u32,        // 0: Solid, 1: Wire, 2: Points
+  pub mesh_subdiv: u32,      // 40, 80, 160, etc
 }
 
 impl Default for GlobalSettings {
   fn default() -> Self {
     Self {
       anisotropy: 4,
-      mipmaps: true,
+      mipmaps: 1,
       resolution_level: 1, // Medium
       mesh_mode: 1,        // wire
       mesh_subdiv: 20,
@@ -58,13 +58,14 @@ impl Default for GlobalSettings {
 }
 
 /// Shared actions for all data-driven menus
+#[derive(Debug, Clone, Copy)]
 pub enum MenuAction {
   Execute(fn(&mut CameraAnchorRes)),
   Back,
-  SetAnisotropy(u16),
-  SetMipmaps(bool),
-  SetResolution(u8),
-  SetMeshMode(u8),
+  SetAnisotropy(u32),
+  SetMipmaps(u32),
+  SetResolution(u32),
+  SetMeshMode(u32),
   SetMeshSubdiv(u32),
   OpenUrl(&'static str),
 }
@@ -87,6 +88,10 @@ pub struct MenuItem {
 /// Maps local plane coordinate (-2.5..2.5) to pixel space (0..512)
 pub fn to_pixel(local_coord: f32) -> f32 {
   (local_coord * 512.0 / 5.0) + 256.0
+}
+
+pub fn to_local(pixel: f32) -> f32 {
+  (pixel - 256.0) / 512.0 * 5.0
 }
 
 /// Attaches a standard observer to a menu entity to handle table-based hits
@@ -119,8 +124,18 @@ pub fn attach_menu_interaction(
             MenuAction::Back => camera_res.request_back(),
             MenuAction::Execute(func) => func(&mut camera_res),
 
-            MenuAction::SetAnisotropy(val) => settings.anisotropy = val,
-            MenuAction::SetMipmaps(val) => settings.mipmaps = val,
+            MenuAction::SetAnisotropy(val) => {
+              settings.anisotropy = val;
+              if val > 1 {
+                settings.mipmaps = 1;
+              }
+            }
+            MenuAction::SetMipmaps(val) => {
+              settings.mipmaps = val;
+              if val == 0 {
+                settings.anisotropy = 1;
+              }
+            }
             MenuAction::SetResolution(val) => settings.resolution_level = val,
             MenuAction::SetMeshMode(val) => settings.mesh_mode = val,
             MenuAction::SetMeshSubdiv(val) => settings.mesh_subdiv = val,
@@ -142,7 +157,6 @@ pub fn attach_menu_interaction(
   );
 }
 
-/// Standard recipe for spawning a 5.0x5.0 menu plane
 pub fn spawn_menu_plane(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -166,6 +180,47 @@ pub fn spawn_menu_plane(
       Transform::from_translation(location),
     ))
     .id();
+
+  // Create the diamond material
+  let diamond_mat = materials.add(StandardMaterial {
+    base_color_texture: Some(asset_server.load("embedded://bevycube/media/diamond_sprite.jpg")),
+    alpha_mode: AlphaMode::Add,
+    reflectance: 0.0,
+    ..default()
+  });
+
+  // Spawn one diamond for each category that needs one
+  // We use the first MenuItem that requests a diamond to set the category
+  let mut categories_spawned = Vec::new();
+
+  for item in hitbox_table {
+    if let Need::Yes = item.diamond {
+      let cat_id = match item.action {
+        MenuAction::SetAnisotropy(_) => 1,
+        MenuAction::SetMipmaps(_) => 2,
+        MenuAction::SetResolution(_) => 3,
+        MenuAction::SetMeshMode(_) => 4,
+        MenuAction::SetMeshSubdiv(_) => 5,
+        _ => 0,
+      };
+
+      if cat_id > 0 && !categories_spawned.contains(&cat_id) {
+        let diamond_id = commands
+          .spawn((
+            Name::new(format!("Diamond {}", cat_id)),
+            crate::ui::diamonds::DiamondCategory(item.action),
+            Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0 / 16.0, 5.0 / 16.0))),
+            MeshMaterial3d(diamond_mat.clone()),
+            // Initial position will be snapped by sync_diamonds
+            Transform::from_xyz(0.0, 0.01, 0.0),
+          ))
+          .id();
+
+        commands.entity(id).add_child(diamond_id);
+        categories_spawned.push(cat_id);
+      }
+    }
+  }
 
   attach_menu_interaction(commands, id, hitbox_table);
   id

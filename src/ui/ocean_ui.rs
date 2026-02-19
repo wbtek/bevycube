@@ -7,9 +7,9 @@ use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(7.5, 0.01, -7.5);
-const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_ocean.jpg";
+pub const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_ocean.jpg";
 
-const HITBOX_TABLE: &[MenuItem] = &[
+pub const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
     x: 354,
     y: 57,
@@ -45,13 +45,13 @@ const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
     x: 111,
     y: 237,
-    w: 55,
+    w: 40,
     h: 29,
     diamond: Yes,
     action: MenuAction::SetMeshSubdiv(5),
   },
   MenuItem {
-    x: 172,
+    x: 160,
     y: 237,
     w: 55,
     h: 29,
@@ -59,7 +59,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     action: MenuAction::SetMeshSubdiv(10),
   },
   MenuItem {
-    x: 233,
+    x: 221,
     y: 237,
     w: 56,
     h: 29,
@@ -67,7 +67,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     action: MenuAction::SetMeshSubdiv(20),
   },
   MenuItem {
-    x: 295,
+    x: 289,
     y: 237,
     w: 56,
     h: 29,
@@ -132,7 +132,7 @@ pub fn sync_ocean_mesh_mode(
   for (i, opt_ent) in entities.iter().enumerate() {
     if let Some(entity) = *opt_ent {
       if let Ok(opt_layers) = query.get_mut(entity) {
-        let is_active_mode = i as u8 == settings.mesh_mode;
+        let is_active_mode = i == settings.mesh_mode as usize;
         if let Some(mut layers) = opt_layers {
           *layers = if is_active_mode {
             RenderLayers::layer(0) // Seen by Camera

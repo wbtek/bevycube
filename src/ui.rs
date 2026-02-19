@@ -27,7 +27,7 @@ pub mod main_ui;
 pub mod ocean_ui;
 pub mod roundel_ui;
 use crate::world::camera::CameraAnchorRes;
-use crate::{EntityTable, ImageFilterMode, ImageSampler, ImageSamplerDescriptor, StitchedRoundel};
+// use crate::{EntityTable, ImageFilterMode, ImageSampler, ImageSamplerDescriptor, StitchedRoundel};
 use bevy::prelude::*;
 use log::info;
 
@@ -174,6 +174,8 @@ pub fn spawn_menu_plane(
 // ============================================================================
 // END NEW LIBRARY / START LEGACY SETTINGS UI
 // ============================================================================
+
+/*
 
 pub struct SettingsUiPlugin;
 impl Plugin for SettingsUiPlugin {
@@ -526,3 +528,5 @@ pub fn spawn_settings_ui(
     },
   );
 }
+
+*/

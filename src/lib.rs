@@ -25,10 +25,10 @@ pub mod roundel;
 pub mod ui;
 pub mod world;
 
-use crate::roundel::*;
+// use crate::roundel::*;
 
 use bevy::asset::embedded_asset;
-use bevy::image::*;
+// use bevy::image::*;
 use bevy::prelude::*;
 
 #[derive(Debug, Resource, Default)]

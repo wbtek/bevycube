@@ -123,8 +123,8 @@ pub fn setup(
 
   // Ground and Environment
   let ocean_floor_handle = asset_server.load("embedded://bevycube/media/wbtekbg2b512.jpg");
-  let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
-  let diamond_handle = asset_server.load("embedded://bevycube/media/diamond_sprite.jpg");
+  // let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
+  // let diamond_handle = asset_server.load("embedded://bevycube/media/diamond_sprite.jpg");
 
   /*
   let menu_main_handle = asset_server.load("embedded://bevycube/media/menu_main.jpg");
@@ -145,24 +145,26 @@ pub fn setup(
     &mut et,
   );
 
-  crate::ui::spawn_settings_ui(
-    &mut commands,
-    &mut meshes,
-    materials.add(StandardMaterial {
-      base_color_texture: Some(settings_handle),
-      alpha_mode: AlphaMode::Add,
-      reflectance: 0.0,
-      ..default()
-    }),
-    materials.add(StandardMaterial {
-      base_color_texture: Some(diamond_handle),
-      alpha_mode: AlphaMode::Add,
-      reflectance: 0.0,
-      ..default()
-    }),
-    ground_id,
-    &mut et,
-  );
+  /*
+    crate::ui::spawn_settings_ui(
+      &mut commands,
+      &mut meshes,
+      materials.add(StandardMaterial {
+        base_color_texture: Some(settings_handle),
+        alpha_mode: AlphaMode::Add,
+        reflectance: 0.0,
+        ..default()
+      }),
+      materials.add(StandardMaterial {
+        base_color_texture: Some(diamond_handle),
+        alpha_mode: AlphaMode::Add,
+        reflectance: 0.0,
+        ..default()
+      }),
+      ground_id,
+      &mut et,
+    );
+  */
 
   crate::ui::main_ui::spawn_main_menu(
     &mut commands,

@@ -1,41 +1,62 @@
-instructions
-settings
-  auto or manual performance
-    resolution
-    mipmaping
-    anisotropic filtering
-  auto or manual viewport size
-    read from window system / browser
-  aspect ratio (flops for portrait/landscape)
-update frames per second
-mipmap
-  shitty code, not understandable
-WBTekify
-Refactor
-Github
+state systems
+  side effects
+    all settings
+      manifestations
+      diamonds
+    camera system
+      position
+      stack
+    menus
+      displayed or not
+        display only if camera stack not empty
+    overlay
+      main menu
+      state
+    sequence numbers
+      menu system update #
+      settings system update #
+      diamond system update #
 
-Ocean waves calm around anchor, radiating from anchor
-Ocean
-  waves radiate from cube, disk, anchor
-  repulsed by camera proximit to below the floor
-----
+  global state change
+    update state
+    tell overlay
+    increment command counter
+    idle until received counter matches
 
-consider whether to lighten work done by observers
-consider whether to impl important entities
-  cube ocean ground disk
-make radial menu
-make anchor/camera push and pop to important locations
-interact with screen size
-fps and milliseconds per frame display
-Can resolution of viewport be changed?
-PingPongBubbles
-Make cube jump height adjust for obstacles?
-Spawn a backdrop so reflections on water can be seen
+  initial spawning
+  run
+  world changing
+    start pause
+    pause confirmed
+      disable waves
+      disable splashes
+      disable repulse
+    change world
+    respawn changed items
+    set to run
 
-Wavetank (ocean)
-  float stuff on water to make surface more visible
+menu system
+  register menus
+  digest hitboxes
+  observers change settings
+  increment menu changes counter
 
-
+settings system
+  if settings counter != menu counter
+    manifest changes
+      make dependent system changes
+      modify system characteristics
+    increment settings counter
+  
+diamond system
+  if diamond counter != settings counter
+    reflect settings
+      iterate settings categories with diamonds
+      
+        
+    increment diamond counter
+    
+  
 
 const HITBOX_TABLE: &[MenuItem] = &[
     MenuItem { x: 354., y: 57.,  w: 74.,  h: 29., action: MenuAction::Back },

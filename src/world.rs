@@ -23,6 +23,7 @@
 
 use crate::ui::diamonds;
 use crate::ui::ocean_ui;
+use crate::ui::roundel_ui;
 use crate::ui::GlobalSettings;
 use crate::{roundel, world::camera::CameraAnchorRes, EntityTable};
 use bevy::prelude::*;
@@ -72,7 +73,8 @@ impl Plugin for WorldPlugin {
           disk::rotate_disk,
           cube::update_jump,
           camera::sync_camera_transforms,
-          ocean_ui::sync_ocean_mesh_mode,
+          ocean_ui::sync_ocean_menu_settings,
+          roundel_ui::sync_roundel_menu_settings,
           diamonds::sync_diamonds,
         )
           .chain(),

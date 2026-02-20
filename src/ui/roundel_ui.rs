@@ -1,7 +1,8 @@
-use crate::ui::Need::*;
-use crate::ui::{self, MenuAction, MenuItem};
+use crate::roundel::StitchedRoundel;
+use crate::ui::{self, GlobalSettings, MenuAction, MenuItem, Need::*};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
+use bevy::image::{ImageFilterMode, ImageSampler, ImageSamplerDescriptor};
 use bevy::prelude::*;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(7.5, 0.01, 0.0);
@@ -129,5 +130,62 @@ pub fn spawn_roundel_menu(
 
   if let Some(ground) = et.ground {
     commands.entity(ground).add_child(menu_id);
+  }
+}
+
+pub fn sync_roundel_menu_settings(
+  settings: Res<GlobalSettings>,
+  mut local: Local<Option<GlobalSettings>>,
+  stitched: Option<Res<StitchedRoundel>>,
+  mut images: ResMut<Assets<Image>>,
+  mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+  if !settings.is_changed() {
+    return;
+  }
+
+  let first = local.is_none();
+  let l = local.get_or_insert_default();
+
+  let Some(ref stitched_res) = stitched else {
+    return;
+  };
+  let handle = &stitched_res.handle;
+  let Some(img) = images.get_mut(handle) else {
+    return;
+  };
+  let mut isamp = match img.sampler.clone() {
+    ImageSampler::Descriptor(d) => d,
+    _ => ImageSamplerDescriptor::default(),
+  };
+
+  if first || settings.anisotropy != l.anisotropy {
+    isamp.anisotropy_clamp = settings.anisotropy as u16;
+    l.anisotropy = settings.anisotropy;
+  }
+
+  if first || settings.mipmaps != l.mipmaps {
+    isamp.mipmap_filter = match settings.mipmaps {
+      1 => ImageFilterMode::Linear,
+      _ => ImageFilterMode::Nearest,
+    };
+    l.mipmaps = settings.mipmaps;
+  }
+
+  if first || settings.asset_resolution != l.asset_resolution {
+    isamp.lod_min_clamp = settings.asset_resolution as f32;
+    l.asset_resolution = settings.asset_resolution;
+  }
+
+  img.sampler = ImageSampler::Descriptor(isamp);
+  for (_, mat) in materials.iter_mut() {
+    if mat
+      .base_color_texture
+      .as_ref()
+      .map(|h| h.id() == handle.id())
+      .unwrap_or(false)
+    {
+      mat.base_color_texture = Some(handle.clone());
+    }
   }
 }

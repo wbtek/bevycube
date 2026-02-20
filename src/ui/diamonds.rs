@@ -31,7 +31,7 @@ pub fn sync_diamonds(
         (MenuAction::SetAnisotropy(v), MenuAction::SetAnisotropy(_)) => *v == settings.anisotropy,
         (MenuAction::SetMipmaps(v), MenuAction::SetMipmaps(_)) => *v == settings.mipmaps,
         (MenuAction::SetResolution(v), MenuAction::SetResolution(_)) => {
-          *v == settings.resolution_level
+          *v == settings.asset_resolution
         }
         (MenuAction::SetMeshSubdiv(v), MenuAction::SetMeshSubdiv(_)) => *v == settings.mesh_subdiv,
         _ => false,

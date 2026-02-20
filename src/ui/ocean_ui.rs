@@ -118,7 +118,7 @@ pub fn spawn_ocean_menu(
   }
 }
 
-pub fn sync_ocean_mesh_mode(
+pub fn sync_ocean_menu_settings(
   settings: Res<GlobalSettings>,
   et: Res<EntityTable>,
   mut query: Query<Option<&mut RenderLayers>>,

@@ -2,6 +2,7 @@ use crate::ui::GlobalSettings;
 use crate::ui::Need::*;
 use crate::ui::{self, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
+use crate::world::ocean;
 use crate::EntityTable;
 use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
@@ -122,17 +123,37 @@ pub fn spawn_ocean_menu(
 pub fn sync_ocean_menu_settings(
   settings: Res<GlobalSettings>,
   mut local: Local<Option<GlobalSettings>>,
-  et: Res<EntityTable>,
+  mut et: ResMut<EntityTable>,
   mut query: Query<Option<&mut RenderLayers>>,
+  mut commands: Commands,
+  mut meshes: ResMut<Assets<Mesh>>,
+  mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-  if !settings.is_changed() {
+  /*
+  if false && !settings.is_changed() {
     return;
   }
+  */
 
   let first = local.is_none();
   let l = local.get_or_insert_default();
 
-  if first || settings.mesh_mode != l.mesh_mode {
+  if first || settings.mesh_dimension != l.mesh_dimension {
+    info!(
+      "dimension change: {:?} to {:?}",
+      l.mesh_dimension, settings.mesh_dimension
+    );
+    ocean::spawn_ocean(
+      &mut commands,
+      &mut meshes,
+      &mut materials,
+      &mut et,
+      settings.mesh_dimension,
+    );
+    l.mesh_dimension = settings.mesh_dimension;
+  }
+
+  if true || first || settings.mesh_mode != l.mesh_mode {
     let entities = [et.ocean, et.ocean_wire, et.ocean_point];
 
     for (i, opt_ent) in entities.iter().enumerate() {
@@ -141,6 +162,7 @@ pub fn sync_ocean_menu_settings(
           let is_active_mode = i == settings.mesh_mode as usize;
           if let Some(mut layers) = opt_layers {
             *layers = if is_active_mode {
+              l.mesh_mode = settings.mesh_mode;
               RenderLayers::layer(0) // Seen by Camera
             } else {
               RenderLayers::layer(1) // Hidden from Camera
@@ -149,13 +171,5 @@ pub fn sync_ocean_menu_settings(
         }
       }
     }
-    l.mesh_mode = settings.mesh_mode;
-  }
-  if first || settings.mesh_dimension != l.mesh_dimension {
-    info!(
-      "dimension change: {:?} to {:?}",
-      l.mesh_dimension, settings.mesh_dimension
-    );
-    l.mesh_dimension = settings.mesh_dimension;
   }
 }

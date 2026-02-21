@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::world::camera;
+// use crate::world::camera;
 use crate::world::camera::CameraAnchorRes;
 use crate::world::ground::GroundConfig;
 use crate::EntityTable;
@@ -125,6 +125,10 @@ impl OceanBuffer {
       .clamp(0.0, size - 1.0) as usize;
 
     self.current[row * self.size + col]
+  }
+
+  pub fn get_depth(&self, x: f32, z: f32) -> f32 {
+    self.get_height(x, z) + 2.0 - 0.25
   }
 }
 
@@ -238,10 +242,21 @@ pub fn spawn_ocean(
   meshes: &mut ResMut<Assets<Mesh>>,
   materials: &mut ResMut<Assets<StandardMaterial>>,
   et: &mut ResMut<EntityTable>,
+  dimension: u32,
 ) -> Entity {
+  let mut clean = |id: &mut Option<Entity>| {
+    if let Some(e) = id.take() {
+      commands.entity(e).despawn();
+    }
+  };
+
+  clean(&mut et.ocean);
+  clean(&mut et.ocean_wire);
+  clean(&mut et.ocean_point);
+
   // let grid_size = 12;
   // let side_length = 23.0;
-  let grid_size = 40;
+  let grid_size = 1 + dimension as usize;
   let side_length = 20.0;
   let world_y = -0.25;
   commands.insert_resource(OceanBuffer::new(grid_size, side_length, world_y));
@@ -308,21 +323,23 @@ pub fn spawn_ocean(
     .id();
   et.ocean_point = Some(ocean_point_id);
 
-  commands.entity(ocean_id).observe(
-    |mut drag: On<Pointer<Drag>>, mut res: ResMut<camera::CameraAnchorRes>| {
-      if drag.button == PointerButton::Primary {
-        res
-          .current
-          .update_pan(-drag.delta.x * 0.015, -drag.delta.y * 0.015);
-        drag.propagate(false);
-      } else if drag.button == PointerButton::Secondary {
-        res
-          .current
-          .update_orbit(-drag.delta.x * 0.005, drag.delta.y * 0.005);
-        drag.propagate(false);
-      }
-    },
-  );
+  /*
+    commands.entity(ocean_id).observe(
+      |mut drag: On<Pointer<Drag>>, mut res: ResMut<camera::CameraAnchorRes>| {
+        if drag.button == PointerButton::Primary {
+          res
+            .current
+            .update_pan(-drag.delta.x * 0.015, -drag.delta.y * 0.015);
+          drag.propagate(false);
+        } else if drag.button == PointerButton::Secondary {
+          res
+            .current
+            .update_orbit(-drag.delta.x * 0.005, drag.delta.y * 0.005);
+          drag.propagate(false);
+        }
+      },
+    );
+  */
 
   ocean_id
 }

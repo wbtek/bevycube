@@ -183,27 +183,26 @@ pub fn handle_jump_request(
     return;
   };
 
-  let mut local_target = target_global.affine().inverse().transform_point3(hit_pos);
+  let local_target = target_global.affine().inverse().transform_point3(hit_pos);
+  let mut l = local_target;
 
   let mut final_entity = target_entity;
 
   if Some(target_entity) == et.disk {
-    local_target.y += 1.;
+    l.y += 1.;
   } else {
-    final_entity = et.ocean.unwrap();
-    local_target.y = water.get_height(local_target.x, local_target.z) + 0.33 + 0.25;
-    local_target = local_target
-      .xz()
-      .clamp_length_min(5.4)
-      .extend(local_target.y)
-      .xzy();
+    final_entity = et.ground.unwrap();
+    let cube_bottom_offset = 1.;
+    let cube_float_offset = cube_bottom_offset - 2. / 3.;
+    l.y = (water.get_depth(l.x, l.z) + cube_float_offset).max(cube_bottom_offset);
+    l = l.xz().clamp_length_min(5.4).extend(l.y).xzy();
   }
 
   commands.entity(cube_entity).remove_parent_in_place();
   commands.entity(cube_entity).insert(JumpData {
     world_start: cube_global.translation(),
     start_rotation: cube_global.compute_transform().rotation,
-    local_target,
+    local_target: l,
     timer: 0.0,
     duration: 3.0,
     target_entity: final_entity,
@@ -323,28 +322,30 @@ pub fn apply_buoyancy(
   if let Ok(mut transform) = query.get_mut(cube_id) {
     if let Ok(parent) = parent_query.get(cube_id) {
       if parent.get() != disk_id {
-        let x = transform.translation.x;
-        let z = transform.translation.z;
+        let cur = transform.translation;
+        let mut next = cur;
 
-        let surface_y = water.get_height(x, z);
-        if surface_y < -1.75 || transform.translation.y < -0.75 {
-          transform.translation.y = -0.75;
-        } else {
-          let mut proposed = transform.translation;
-          proposed.y = (proposed.y + (surface_y - (proposed.y - 0.50)) * 0.25).max(-0.75);
+        let water_depth = water.get_depth(cur.x, cur.z);
+        let cube_bottom_offset = 1.;
+        let cube_float_offset = cube_bottom_offset - 2. / 3.;
+        let cube_next_float_immediate = water_depth + cube_float_offset;
+        let total_distance = cube_next_float_immediate - cur.y;
+        let fractional_distance = total_distance / 3.;
+        next.y = (cur.y + fractional_distance).max(cube_bottom_offset);
 
-          let testx = (water.get_height(x - 1., z) - water.get_height(x + 1., z)) / 3.;
-          let testz = (water.get_height(x, z - 1.) - water.get_height(x, z + 1.)) / 3.;
+        let slope_x =
+          (water.get_height(cur.x - 1., cur.z) - water.get_height(cur.x + 1., cur.z)) / 3.;
+        let slope_z =
+          (water.get_height(cur.x, cur.z - 1.) - water.get_height(cur.x, cur.z + 1.)) / 3.;
 
-          if testx.abs() + testz.abs() > 0.002 {
-            proposed.x += testx.clamp(-0.02, 0.02);
-            proposed.z += testz.clamp(-0.02, 0.02);
-          }
-
-          proposed = proposed.xz().clamp_length_min(5.4).extend(proposed.y).xzy();
-
-          transform.translation = proposed;
+        if slope_x.abs() + slope_z.abs() > 0.002 {
+          next.x += slope_x.clamp(-0.02, 0.02);
+          next.z += slope_z.clamp(-0.02, 0.02);
         }
+
+        next = next.xz().clamp_length_min(5.4).extend(next.y).xzy();
+
+        transform.translation = next;
       }
     }
   }

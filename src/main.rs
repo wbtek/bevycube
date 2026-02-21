@@ -47,7 +47,6 @@ fn main() {
       roundel::RoundelPlugin,
       world::WorldPlugin,
       world::camera::CameraPlugin,
-      // ui::SettingsUiPlugin,
     ))
     .run();
 }

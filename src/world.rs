@@ -69,13 +69,13 @@ impl Plugin for WorldPlugin {
       .add_systems(
         Update,
         (
+          ocean_ui::sync_ocean_menu_settings,
+          roundel_ui::sync_roundel_menu_settings,
+          diamonds::sync_diamonds,
           cube::rotate_cube,
           disk::rotate_disk,
           cube::update_jump,
           camera::sync_camera_transforms,
-          ocean_ui::sync_ocean_menu_settings,
-          roundel_ui::sync_roundel_menu_settings,
-          diamonds::sync_diamonds,
         )
           .chain(),
       );
@@ -138,7 +138,8 @@ pub fn setup(
   let menu_about_handle = asset_server.load("embedded://bevycube/media/menu_about.jpg");
   */
 
-  let ocean_id = ocean::spawn_ocean(&mut commands, &mut meshes, &mut materials, &mut et);
+  // let ocean_id = ocean::spawn_ocean(&mut commands, &mut meshes, &mut materials, &mut et);
+  // ocean::spawn_ocean(&mut commands, &mut meshes, &mut materials, &mut et, 20);
 
   let ground_id = ground::spawn_ground(
     &mut commands,
@@ -217,6 +218,6 @@ pub fn setup(
   commands
     .entity(ground_id)
     .observe(cube::handle_jump_request);
-  commands.entity(ocean_id).observe(cube::handle_jump_request);
+  // commands.entity(ocean_id).observe(cube::handle_jump_request);
   commands.entity(disk_id).observe(cube::handle_jump_request);
 }

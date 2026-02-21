@@ -5,6 +5,7 @@ use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
+use log::info;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(7.5, 0.01, -7.5);
 pub const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_ocean.jpg";
@@ -48,7 +49,7 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
     w: 40,
     h: 29,
     diamond: Yes,
-    action: MenuAction::SetMeshSubdiv(5),
+    action: MenuAction::SetMeshDimension(5),
   },
   MenuItem {
     x: 160,
@@ -56,7 +57,7 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
     w: 55,
     h: 29,
     diamond: Yes,
-    action: MenuAction::SetMeshSubdiv(10),
+    action: MenuAction::SetMeshDimension(10),
   },
   MenuItem {
     x: 221,
@@ -64,7 +65,7 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
     w: 56,
     h: 29,
     diamond: Yes,
-    action: MenuAction::SetMeshSubdiv(20),
+    action: MenuAction::SetMeshDimension(20),
   },
   MenuItem {
     x: 289,
@@ -72,7 +73,7 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
     w: 56,
     h: 29,
     diamond: Yes,
-    action: MenuAction::SetMeshSubdiv(40),
+    action: MenuAction::SetMeshDimension(40),
   },
   MenuItem {
     x: 357,
@@ -80,7 +81,7 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
     w: 60,
     h: 29,
     diamond: Yes,
-    action: MenuAction::SetMeshSubdiv(80),
+    action: MenuAction::SetMeshDimension(80),
   },
 ];
 
@@ -120,6 +121,7 @@ pub fn spawn_ocean_menu(
 
 pub fn sync_ocean_menu_settings(
   settings: Res<GlobalSettings>,
+  mut local: Local<Option<GlobalSettings>>,
   et: Res<EntityTable>,
   mut query: Query<Option<&mut RenderLayers>>,
 ) {
@@ -127,20 +129,33 @@ pub fn sync_ocean_menu_settings(
     return;
   }
 
-  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  let first = local.is_none();
+  let l = local.get_or_insert_default();
 
-  for (i, opt_ent) in entities.iter().enumerate() {
-    if let Some(entity) = *opt_ent {
-      if let Ok(opt_layers) = query.get_mut(entity) {
-        let is_active_mode = i == settings.mesh_mode as usize;
-        if let Some(mut layers) = opt_layers {
-          *layers = if is_active_mode {
-            RenderLayers::layer(0) // Seen by Camera
-          } else {
-            RenderLayers::layer(1) // Hidden from Camera
-          };
+  if first || settings.mesh_mode != l.mesh_mode {
+    let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+
+    for (i, opt_ent) in entities.iter().enumerate() {
+      if let Some(entity) = *opt_ent {
+        if let Ok(opt_layers) = query.get_mut(entity) {
+          let is_active_mode = i == settings.mesh_mode as usize;
+          if let Some(mut layers) = opt_layers {
+            *layers = if is_active_mode {
+              RenderLayers::layer(0) // Seen by Camera
+            } else {
+              RenderLayers::layer(1) // Hidden from Camera
+            };
+          }
         }
       }
     }
+    l.mesh_mode = settings.mesh_mode;
+  }
+  if first || settings.mesh_dimension != l.mesh_dimension {
+    info!(
+      "dimension change: {:?} to {:?}",
+      l.mesh_dimension, settings.mesh_dimension
+    );
+    l.mesh_dimension = settings.mesh_dimension;
   }
 }

@@ -38,7 +38,7 @@ pub struct GlobalSettings {
   pub mipmaps: u32,          // 0: Off, 1: On
   pub asset_resolution: u32, // 0: High, 1: Med, 2: Low
   pub mesh_mode: u32,        // 0: Solid, 1: Wire, 2: Points
-  pub mesh_subdiv: u32,      // 40, 80, 160, etc
+  pub mesh_dimension: u32,   // 40, 80, 160, etc
 }
 
 impl Default for GlobalSettings {
@@ -48,7 +48,7 @@ impl Default for GlobalSettings {
       mipmaps: 1,
       asset_resolution: 1, // Medium
       mesh_mode: 1,        // wire
-      mesh_subdiv: 20,
+      mesh_dimension: 20,
     }
   }
 }
@@ -62,7 +62,7 @@ pub enum MenuAction {
   SetMipmaps(u32),
   SetResolution(u32),
   SetMeshMode(u32),
-  SetMeshSubdiv(u32),
+  SetMeshDimension(u32),
   OpenUrl(&'static str),
 }
 
@@ -134,7 +134,7 @@ pub fn attach_menu_interaction(
             }
             MenuAction::SetResolution(val) => settings.asset_resolution = val,
             MenuAction::SetMeshMode(val) => settings.mesh_mode = val,
-            MenuAction::SetMeshSubdiv(val) => settings.mesh_subdiv = val,
+            MenuAction::SetMeshDimension(val) => settings.mesh_dimension = val,
 
             MenuAction::OpenUrl(url) => {
               info!("Open URL: {}", url);
@@ -196,7 +196,7 @@ pub fn spawn_menu_plane(
         MenuAction::SetMipmaps(_) => 2,
         MenuAction::SetResolution(_) => 3,
         MenuAction::SetMeshMode(_) => 4,
-        MenuAction::SetMeshSubdiv(_) => 5,
+        MenuAction::SetMeshDimension(_) => 5,
         _ => 0,
       };
 

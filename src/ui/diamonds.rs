@@ -33,7 +33,9 @@ pub fn sync_diamonds(
         (MenuAction::SetResolution(v), MenuAction::SetResolution(_)) => {
           *v == settings.asset_resolution
         }
-        (MenuAction::SetMeshSubdiv(v), MenuAction::SetMeshSubdiv(_)) => *v == settings.mesh_subdiv,
+        (MenuAction::SetMeshDimension(v), MenuAction::SetMeshDimension(_)) => {
+          *v == settings.mesh_dimension
+        }
         _ => false,
       }
     };

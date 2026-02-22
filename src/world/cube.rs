@@ -151,6 +151,13 @@ pub fn handle_jump_request(
   mut camera_res: ResMut<CameraAnchorRes>,
   water: Res<OceanBuffer>,
 ) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   if click.duration.as_millis() > 250 {
     return;
   }
@@ -159,13 +166,12 @@ pub fn handle_jump_request(
     click.propagate(false);
     return;
   }
-  // pop on middle click
   if click.button == PointerButton::Middle {
+    // pop on middle click
     camera_res.request_back();
     click.propagate(false);
     return;
   }
-  // end ddt
   click.propagate(false);
   let Some(hit_pos) = click.hit.position else {
     return;
@@ -231,6 +237,13 @@ pub fn update_jump(
   target_query: Query<&GlobalTransform>,
   mut cube_query: Query<(&mut Transform, &mut JumpData)>,
 ) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   let Some(cube_entity) = et.cube else { return };
   let Ok((mut transform, mut data)) = cube_query.get_mut(cube_entity) else {
     return;
@@ -316,6 +329,13 @@ pub fn apply_buoyancy(
   mut query: Query<&mut Transform, (With<RotatingCube>, Without<JumpData>)>,
   parent_query: Query<&ChildOf>,
 ) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   let (Some(cube_id), Some(disk_id)) = (et.cube, et.disk) else {
     return;
   };

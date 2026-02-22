@@ -21,7 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// use crate::world::camera;
 use crate::world::camera::CameraAnchorRes;
 use crate::world::ground::GroundConfig;
 use crate::EntityTable;
@@ -73,7 +72,6 @@ impl OceanBuffer {
 
     for n in 1..self.size - 1 {
       // not the corners
-
       let row = n;
       self.current[row * self.size + left_column] = 0.;
       self.current[row * self.size + right_column] = 0.;
@@ -82,7 +80,6 @@ impl OceanBuffer {
       self.current[top_row * self.size + col] = 0.;
       self.current[bottom_row * self.size + col] = 0.;
     }
-
     // the corners
     self.current[top_row * self.size + left_column] = 0.;
     self.current[top_row * self.size + right_column] = 0.;
@@ -140,71 +137,19 @@ use bevy::asset::RenderAssetUsages;
 use bevy::mesh::Indices;
 use bevy::mesh::PrimitiveTopology;
 
-/*
-// Works: Functionally equivalent, modifyable
-fn create_foo_mesh(x_units: f32, z_units: f32, subdivisions: u32) -> Mesh {
-    let grid_res = subdivisions + 2;
-    let total_vertices = (grid_res * grid_res) as usize;
-    let x_spacing = x_units / (grid_res as f32 - 1.0);
-    let z_spacing = z_units / (grid_res as f32 - 1.0);
-
-    let mut positions = Vec::with_capacity(total_vertices);
-    let mut indices = Vec::new();
-
-    // 1. Position mapping (foo = 144 vertices)
-    for i in 0..total_vertices as u32 {
-        let row = i / grid_res;
-        let col = i % grid_res;
-        let x = (col as f32 * x_spacing) - (x_units / 2.0);
-        let z = (row as f32 * z_spacing) - (z_units / 2.0);
-        positions.push([x, 0.0, z]);
-    }
-
-    // 2. Index mapping (Standard CCW winding)
-    for row in 0..grid_res - 1 {
-        for col in 0..grid_res - 1 {
-            let i = row * grid_res + col;
-            indices.extend_from_slice(&[i, i + grid_res, i + 1]);
-            indices.extend_from_slice(&[i + 1, i + grid_res, i + grid_res + 1]);
-        }
-    }
-
-    // 3. Bevy 0.18 Constructor
-    let mut mesh = Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default() // Required for dynamic updates in 0.18
-    );
-
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-    mesh.insert_indices(Indices::U32(indices));
-    // Required for PBR and Solari lighting in 0.18
-    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0.0, 1.0, 0.0]; total_vertices]);
-
-    mesh
-}
-*/
-
-/*
-// Works: proves we can accept the parameters and return the right value.
-fn create_foo_mesh(x_units: f32, z_units: f32, subdivisions: u32) -> Mesh {
-    Plane3d::default().mesh().size(x_units, z_units).subdivisions(subdivisions).build()
-}
-*/
-
 pub fn generate_wireframe_from_mesh(source_mesh: &Mesh) -> Mesh {
-  // 1. Create a new mesh using LineList topology
+  // create new LineList mesh
   let mut wireframe_mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default());
 
-  // 2. Copy the exact same vertex positions (No new generation needed)
+  // copy same vertex positions
   if let Some(positions) = source_mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
     wireframe_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
   }
 
-  // 3. Convert Triangle Triplets [0, 1, 2] into Line Pairs [0, 1, 1, 2, 2, 0]
+  // convert triangle triplets [0, 1, 2] into line pairs [0, 1, 1, 2, 2, 0]
   if let Some(indices) = source_mesh.indices() {
     let mut line_indices = Vec::new();
 
-    // This iterator works for both u16 and u32 indices
     let mut iter = indices.iter();
     while let (Some(a), Some(b), Some(c)) = (iter.next(), iter.next(), iter.next()) {
       // Triangle edges: A-B, B-C, C-A
@@ -223,13 +168,12 @@ pub fn generate_points_from_mesh(source_mesh: &Mesh) -> Mesh {
     RenderAssetUsages::default(),
   );
 
-  // Copy the positions exactly like we did for lines
+  // copy positions like we did for lines
   if let Some(positions) = source_mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
     point_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions.clone());
   }
-
-  // Point lists don't technically need indices, but keeping them
-  // ensures the GPU knows which vertices to draw.
+  // point lists don't technically need indices
+  // keep so GPU knows what vertices to draw.
   if let Some(indices) = source_mesh.indices() {
     point_mesh.insert_indices(indices.clone());
   }
@@ -254,20 +198,16 @@ pub fn spawn_ocean(
   clean(&mut et.ocean_wire);
   clean(&mut et.ocean_point);
 
-  // let grid_size = 12;
-  // let side_length = 23.0;
   let grid_size = 1 + dimension as usize;
   let side_length = 20.0;
   let world_y = -0.25;
   commands.insert_resource(OceanBuffer::new(grid_size, side_length, world_y));
 
-  // let ocean_mesh = Plane3d::default().mesh().size(23.0, 23.0).subdivisions(10).build();
   let ocean_mesh = Plane3d::default()
     .mesh()
     .size(side_length, side_length)
     .subdivisions((grid_size - 2) as u32)
     .build();
-  // let ocean_mesh = create_foo_mesh(23., 23., 10);
 
   let wire_mesh = generate_wireframe_from_mesh(&ocean_mesh);
   let point_mesh = generate_points_from_mesh(&ocean_mesh);
@@ -287,7 +227,7 @@ pub fn spawn_ocean(
         is_hoverable: false,
         should_block_lower: false,
       },
-      RenderLayers::layer(0),
+      RenderLayers::layer(1),
       Transform::from_xyz(0.0, world_y, 0.0),
     ))
     .id();
@@ -323,28 +263,21 @@ pub fn spawn_ocean(
     .id();
   et.ocean_point = Some(ocean_point_id);
 
-  /*
-    commands.entity(ocean_id).observe(
-      |mut drag: On<Pointer<Drag>>, mut res: ResMut<camera::CameraAnchorRes>| {
-        if drag.button == PointerButton::Primary {
-          res
-            .current
-            .update_pan(-drag.delta.x * 0.015, -drag.delta.y * 0.015);
-          drag.propagate(false);
-        } else if drag.button == PointerButton::Secondary {
-          res
-            .current
-            .update_orbit(-drag.delta.x * 0.005, drag.delta.y * 0.005);
-          drag.propagate(false);
-        }
-      },
-    );
-  */
-
   ocean_id
 }
 
-pub fn apply_camera_repulsion(mut water: ResMut<OceanBuffer>, anchor: ResMut<CameraAnchorRes>) {
+pub fn apply_camera_repulsion(
+  mut water: ResMut<OceanBuffer>,
+  anchor: ResMut<CameraAnchorRes>,
+  et: Res<EntityTable>,
+) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   let dist = anchor.current.get_camera_effect();
 
   let repulsion_radius = ((15.0 - dist) / 15.0 * 6.0).max(0.0);
@@ -374,6 +307,13 @@ pub fn simulate_waves(
   et: Res<EntityTable>,
   global_transforms: Query<&GlobalTransform>,
 ) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   let Some(disk_id) = et.disk else { return };
   let Ok(disk_gtf) = global_transforms.get(disk_id) else {
     return;
@@ -407,10 +347,18 @@ pub fn simulate_waves(
 
 pub fn update_ocean_mesh(
   water: Res<OceanBuffer>,
+  et: Res<EntityTable>,
   ground_config: Res<GroundConfig>,
   mut meshes: ResMut<Assets<Mesh>>,
   query: Query<&Mesh3d, With<Ocean>>,
 ) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   for mesh_3d in &query {
     if let Some(mesh) = meshes.get_mut(&mesh_3d.0) {
       if let Some(VertexAttributeValues::Float32x3(pos)) =
@@ -426,10 +374,24 @@ pub fn update_ocean_mesh(
   }
 }
 
-pub fn clamp_edges(mut water: ResMut<OceanBuffer>) {
+pub fn clamp_edges(mut water: ResMut<OceanBuffer>, et: Res<EntityTable>) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   water.zap_edges();
 }
 
-pub fn swap_and_copy(mut water: ResMut<OceanBuffer>) {
+pub fn swap_and_copy(mut water: ResMut<OceanBuffer>, et: Res<EntityTable>) {
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  for e in entities.iter() {
+    if e.is_none() {
+      return;
+    };
+  }
+
   water.swap();
 }

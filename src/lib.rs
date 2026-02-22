@@ -25,10 +25,7 @@ pub mod roundel;
 pub mod ui;
 pub mod world;
 
-// use crate::roundel::*;
-
 use bevy::asset::embedded_asset;
-// use bevy::image::*;
 use bevy::prelude::*;
 
 #[derive(Debug, Resource, Default)]
@@ -41,24 +38,16 @@ pub struct EntityTable {
   pub roundel_menu: Option<Entity>,
   pub instructions_menu: Option<Entity>,
   pub about_menu: Option<Entity>,
-  pub settings: Option<Entity>,
-  pub set_anisotropic: Option<Entity>,
-  pub set_mipmaps: Option<Entity>,
-  pub set_resolution: Option<Entity>,
-  pub set_render_mode: Option<Entity>,
-  pub set_mesh_size: Option<Entity>,
   pub main_anchor: Option<Entity>,
   pub ocean: Option<Entity>,
   pub ocean_wire: Option<Entity>,
   pub ocean_point: Option<Entity>,
-  pub deadbeef: Option<Entity>,
 }
 
 pub struct EmbeddedAssetsPlugin;
 impl Plugin for EmbeddedAssetsPlugin {
   fn build(&self, app: &mut App) {
     embedded_asset!(app, "media/wbtekbg2b512.jpg");
-    embedded_asset!(app, "media/settings.jpg");
     embedded_asset!(app, "media/diamond_sprite.jpg");
     embedded_asset!(app, "media/menu_main.jpg");
     embedded_asset!(app, "media/menu_roundel.jpg");

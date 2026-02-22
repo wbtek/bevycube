@@ -29,7 +29,6 @@ pub mod ocean_ui;
 pub mod roundel_ui;
 use crate::world::camera::CameraAnchorRes;
 use bevy::prelude::*;
-use log::info;
 
 #[derive(Resource, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
@@ -44,13 +43,23 @@ pub struct GlobalSettings {
 impl Default for GlobalSettings {
   fn default() -> Self {
     Self {
-      anisotropy: 4,
+      anisotropy: 2,
       mipmaps: 1,
       asset_resolution: 1, // Medium
-      mesh_mode: 1,        // wire
+      mesh_mode: 0,        // Solid
       mesh_dimension: 20,
     }
   }
+}
+
+impl GlobalSettings {
+  const INVALID: Self = Self {
+    anisotropy: 1111111111,
+    mipmaps: 1111111111,
+    asset_resolution: 1111111111,
+    mesh_mode: 1111111111,
+    mesh_dimension: 1111111111,
+  };
 }
 
 /// Shared actions for all data-driven menus
@@ -137,7 +146,6 @@ pub fn attach_menu_interaction(
             MenuAction::SetMeshDimension(val) => settings.mesh_dimension = val,
 
             MenuAction::OpenUrl(url) => {
-              info!("Open URL: {}", url);
               #[cfg(target_arch = "wasm32")]
               {
                 if let Some(window) = web_sys::window() {
@@ -186,7 +194,7 @@ pub fn spawn_menu_plane(
   });
 
   // Spawn one diamond for each category that needs one
-  // We use the first MenuItem that requests a diamond to set the category
+  // Category set from first MenuItem to request diamond
   let mut categories_spawned = Vec::new();
 
   for item in hitbox_table {

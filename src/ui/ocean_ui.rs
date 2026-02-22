@@ -6,7 +6,6 @@ use crate::world::ocean;
 use crate::EntityTable;
 use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
-use log::info;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(7.5, 0.01, -7.5);
 pub const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_ocean.jpg";
@@ -77,12 +76,28 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
     action: MenuAction::SetMeshDimension(40),
   },
   MenuItem {
-    x: 357,
-    y: 237,
+    x: 111,
+    y: 282,
     w: 60,
     h: 29,
     diamond: Yes,
     action: MenuAction::SetMeshDimension(80),
+  },
+  MenuItem {
+    x: 179,
+    y: 282,
+    w: 72,
+    h: 29,
+    diamond: Yes,
+    action: MenuAction::SetMeshDimension(160),
+  },
+  MenuItem {
+    x: 259,
+    y: 282,
+    w: 79,
+    h: 29,
+    diamond: Yes,
+    action: MenuAction::SetMeshDimension(320),
   },
 ];
 
@@ -129,20 +144,12 @@ pub fn sync_ocean_menu_settings(
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-  /*
-  if false && !settings.is_changed() {
-    return;
+  if local.is_none() {
+    *local = Some(GlobalSettings::INVALID);
   }
-  */
+  let l = local.as_mut().unwrap();
 
-  let first = local.is_none();
-  let l = local.get_or_insert_default();
-
-  if first || settings.mesh_dimension != l.mesh_dimension {
-    info!(
-      "dimension change: {:?} to {:?}",
-      l.mesh_dimension, settings.mesh_dimension
-    );
+  if settings.mesh_dimension != l.mesh_dimension {
     ocean::spawn_ocean(
       &mut commands,
       &mut meshes,
@@ -150,12 +157,13 @@ pub fn sync_ocean_menu_settings(
       &mut et,
       settings.mesh_dimension,
     );
+    *l = GlobalSettings::INVALID;
     l.mesh_dimension = settings.mesh_dimension;
+    return;
   }
 
-  if true || first || settings.mesh_mode != l.mesh_mode {
+  if settings.mesh_mode != l.mesh_mode {
     let entities = [et.ocean, et.ocean_wire, et.ocean_point];
-
     for (i, opt_ent) in entities.iter().enumerate() {
       if let Some(entity) = *opt_ent {
         if let Ok(opt_layers) = query.get_mut(entity) {

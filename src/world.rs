@@ -27,6 +27,7 @@ use crate::ui::roundel_ui;
 use crate::ui::GlobalSettings;
 use crate::{roundel, world::camera::CameraAnchorRes, EntityTable};
 use bevy::prelude::*;
+// use log::info;
 
 pub mod camera;
 pub mod cube;
@@ -59,10 +60,10 @@ impl Plugin for WorldPlugin {
         ocean::clamp_edges,
         ocean::swap_and_copy,
         ocean::update_ocean_mesh,
+        cube::apply_buoyancy,
       )
         .chain(),
     );
-    app.add_systems(FixedUpdate, cube::apply_buoyancy);
     app
       .register_type::<cube::RotatingCube>()
       .add_systems(Startup, setup)
@@ -125,21 +126,8 @@ pub fn setup(
     &mut et,
   );
 
-  // Ground and Environment
+  // Ground and Environment but ocean spawns from menu system
   let ocean_floor_handle = asset_server.load("embedded://bevycube/media/wbtekbg2b512.jpg");
-  // let settings_handle = asset_server.load("embedded://bevycube/media/settings.jpg");
-  // let diamond_handle = asset_server.load("embedded://bevycube/media/diamond_sprite.jpg");
-
-  /*
-  let menu_main_handle = asset_server.load("embedded://bevycube/media/menu_main.jpg");
-  let menu_roundel_handle = asset_server.load("embedded://bevycube/media/menu_roundel.jpg");
-  let menu_ocean_handle = asset_server.load("embedded://bevycube/media/menu_ocean.jpg");
-  let menu_instructions_handle = asset_server.load("embedded://bevycube/media/menu_instructions.jpg");
-  let menu_about_handle = asset_server.load("embedded://bevycube/media/menu_about.jpg");
-  */
-
-  // let ocean_id = ocean::spawn_ocean(&mut commands, &mut meshes, &mut materials, &mut et);
-  // ocean::spawn_ocean(&mut commands, &mut meshes, &mut materials, &mut et, 20);
 
   let ground_id = ground::spawn_ground(
     &mut commands,
@@ -149,27 +137,6 @@ pub fn setup(
     ocean_floor_handle,
     &mut et,
   );
-
-  /*
-    crate::ui::spawn_settings_ui(
-      &mut commands,
-      &mut meshes,
-      materials.add(StandardMaterial {
-        base_color_texture: Some(settings_handle),
-        alpha_mode: AlphaMode::Add,
-        reflectance: 0.0,
-        ..default()
-      }),
-      materials.add(StandardMaterial {
-        base_color_texture: Some(diamond_handle),
-        alpha_mode: AlphaMode::Add,
-        reflectance: 0.0,
-        ..default()
-      }),
-      ground_id,
-      &mut et,
-    );
-  */
 
   crate::ui::main_ui::spawn_main_menu(
     &mut commands,
@@ -218,6 +185,5 @@ pub fn setup(
   commands
     .entity(ground_id)
     .observe(cube::handle_jump_request);
-  // commands.entity(ocean_id).observe(cube::handle_jump_request);
   commands.entity(disk_id).observe(cube::handle_jump_request);
 }

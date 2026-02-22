@@ -22,7 +22,7 @@
 // SOFTWARE.
 
 use crate::world::camera::CameraAnchorRes;
-use crate::world::ground::GroundConfig;
+// use crate::world::ground::GroundConfig;
 use crate::EntityTable;
 use bevy::camera::visibility::RenderLayers;
 use bevy::mesh::VertexAttributeValues;
@@ -104,8 +104,10 @@ impl OceanBuffer {
         let dist_sq = (vx - x).powi(2) + (vz - z).powi(2);
         if dist_sq < r_sq {
           let falloff = 1.0 - (dist_sq / r_sq).sqrt();
-          self.current[i] += magnitude * falloff;
-          self.next[i] += magnitude * falloff;
+          // self.current[i] += magnitude * falloff;
+          self.current[i] = (self.current[i] + magnitude * falloff).max(-1.76);
+          // self.next[i] += magnitude * falloff;
+          self.next[i] = (self.next[i] + magnitude * falloff).max(-1.76);
         }
       }
     }
@@ -296,7 +298,7 @@ pub fn apply_camera_repulsion(
         .distance_squared(anchor.current.anchor.xz())
         < r_sq
       {
-        water.next[i] = push_depth;
+        water.next[i] = push_depth.max(-1.76);
       }
     }
   }
@@ -340,7 +342,7 @@ pub fn simulate_waves(
         + water.current[i + size]
         + water.current[i + size + 1])
         / 9.0;
-      water.next[i] = (avg * 2.0 - water.next[i]) * 0.98;
+      water.next[i] = ((avg * 2.0 - water.next[i]) * 0.98).max(-1.76);
     }
   }
 }
@@ -348,7 +350,7 @@ pub fn simulate_waves(
 pub fn update_ocean_mesh(
   water: Res<OceanBuffer>,
   et: Res<EntityTable>,
-  ground_config: Res<GroundConfig>,
+  // ground_config: Res<GroundConfig>,
   mut meshes: ResMut<Assets<Mesh>>,
   query: Query<&Mesh3d, With<Ocean>>,
 ) {
@@ -366,7 +368,8 @@ pub fn update_ocean_mesh(
       {
         for (i, p) in pos.iter_mut().enumerate() {
           if i < water.current.len() {
-            p[1] = water.current[i].max(ground_config.world_y);
+            // p[1] = water.current[i].max(ground_config.world_y);
+            p[1] = water.current[i].max(-1.76);
           }
         }
       }

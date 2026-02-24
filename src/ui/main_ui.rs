@@ -4,7 +4,7 @@ use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::prelude::*;
 
-pub const MENU_LOCATION: Vec3 = Vec3::new(0.0, 0.01, -7.5);
+pub const MENU_LOCATION: Vec3 = Vec3::new(0.0, 0.01, -5.9);
 const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_main.jpg";
 
 const HITBOX_TABLE: &[MenuItem] = &[

@@ -21,7 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::world::camera::*; // ddt
+use crate::constants::*;
+use crate::world::camera::*;
 use crate::{world::ocean::OceanBuffer, EntityTable};
 use bevy::ecs::relationship::Relationship;
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
@@ -63,34 +64,39 @@ pub fn spawn_rotating_cube(
   roundel_mat: StandardMaterial,
   et: &mut ResMut<EntityTable>,
 ) -> Entity {
+  let half = CUBE_WORLD_SIDE_LEN * 0.5;
+  let shy = half - 0.01;
   let cube_id = commands
-    .spawn((RotatingCube, Transform::from_xyz(0.0, 1.0, 0.0)))
+    .spawn((
+      RotatingCube,
+      Transform::from_xyz(0.0, half + DISK_WORLD_Y, 0.0),
+    ))
     .id();
   et.cube = Some(cube_id);
 
   let face_data = [
     (
-      Vec3::new(0.0, 0.0, 0.99), //
+      Vec3::new(0.0, 0.0, shy), //
       Quat::IDENTITY,
     ),
     (
-      Vec3::new(0.0, 0.0, -0.99),
+      Vec3::new(0.0, 0.0, -shy),
       Quat::from_rotation_y(std::f32::consts::PI),
     ),
     (
-      Vec3::new(0.99, 0.0, 0.0),
+      Vec3::new(shy, 0.0, 0.0),
       Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
     ),
     (
-      Vec3::new(-0.99, 0.0, 0.0),
+      Vec3::new(-shy, 0.0, 0.0),
       Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
     ),
     (
-      Vec3::new(0.0, 0.99, 0.0),
+      Vec3::new(0.0, shy, 0.0),
       Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
     ),
     (
-      Vec3::new(0.0, -0.99, 0.0),
+      Vec3::new(0.0, -shy, 0.0),
       Quat::from_rotation_x(std::f32::consts::FRAC_PI_2),
     ),
   ];
@@ -194,14 +200,21 @@ pub fn handle_jump_request(
 
   let mut final_entity = target_entity;
 
+  let half = CUBE_WORLD_SIDE_LEN * 0.5;
   if Some(target_entity) == et.disk {
-    l.y += 1.;
+    l.y += half;
   } else {
     final_entity = et.ground.unwrap();
-    let cube_bottom_offset = 1.;
+    let cube_bottom_offset = half;
     let cube_float_offset = cube_bottom_offset - 2. / 3.;
     l.y = (water.get_depth(l.x, l.z) + cube_float_offset).max(cube_bottom_offset);
-    l = l.xz().clamp_length_min(5.4).extend(l.y).xzy();
+    let min_distance_to_disk_center =
+      DISK_WORLD_RADIUS + ((CUBE_WORLD_SIDE_LEN * 0.5).powf(2.0) * 2.0).sqrt();
+    l = l
+      .xz()
+      .clamp_length_min(min_distance_to_disk_center)
+      .extend(l.y)
+      .xzy();
   }
 
   commands.entity(cube_entity).remove_parent_in_place();
@@ -274,7 +287,7 @@ pub fn update_jump(
     ElasticInOut.sample_unchecked(t),
     BounceInOut.sample_unchecked(t),
   );
-  let mut bounce_height = 4. * (0.5 - (bounce_t - 0.5).abs());
+  let mut bounce_height = (DISK_WORLD_Y - GROUND_WORLD_Y + 4.) * (0.5 - (bounce_t - 0.5).abs());
   match anim_type {
     AnimationType::Slide | AnimationType::Spin => {
       bounce_height = 0.;
@@ -346,7 +359,7 @@ pub fn apply_buoyancy(
         let mut next = cur;
 
         let water_depth = water.get_depth(cur.x, cur.z);
-        let cube_bottom_offset = 1.;
+        let cube_bottom_offset = CUBE_WORLD_SIDE_LEN * 0.5;
         let cube_float_offset = cube_bottom_offset - 2. / 3.;
         let cube_next_float_immediate = water_depth + cube_float_offset;
         let total_distance = cube_next_float_immediate - cur.y;
@@ -363,7 +376,13 @@ pub fn apply_buoyancy(
           next.z += slope_z.clamp(-0.02, 0.02);
         }
 
-        next = next.xz().clamp_length_min(5.4).extend(next.y).xzy();
+        let min_distance_to_disk_center =
+          DISK_WORLD_RADIUS + ((CUBE_WORLD_SIDE_LEN * 0.5).powf(2.0) * 2.0).sqrt();
+        next = next
+          .xz()
+          .clamp_length_min(min_distance_to_disk_center)
+          .extend(next.y)
+          .xzy();
 
         transform.translation = next;
       }

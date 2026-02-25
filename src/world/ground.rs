@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::constants::*;
 use crate::world::camera;
 use crate::EntityTable;
 use bevy::prelude::*;
@@ -29,24 +30,24 @@ use bevy::prelude::*;
 #[require(Transform, Visibility)]
 pub struct Ground;
 
-#[derive(Resource, Debug)]
-pub struct GroundConfig {
-  pub world_y: f32,
-}
-
 pub fn spawn_ground(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
   materials: &mut ResMut<Assets<StandardMaterial>>,
-  ground_config: Res<GroundConfig>,
   ocean_floor_handle: Handle<Image>,
   et: &mut ResMut<EntityTable>,
 ) -> Entity {
-  let world_y = ground_config.world_y;
+  let world_y = GROUND_WORLD_Y;
   let ground_id = commands
     .spawn((
       Ground,
-      Mesh3d(meshes.add(Plane3d::default().mesh().size(20., 20.))),
+      Mesh3d(
+        meshes.add(
+          Plane3d::default()
+            .mesh()
+            .size(GROUND_WORLD_SIDE_LEN, GROUND_WORLD_SIDE_LEN),
+        ),
+      ),
       MeshMaterial3d(materials.add(StandardMaterial {
         base_color_texture: Some(ocean_floor_handle),
         ..default()

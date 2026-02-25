@@ -21,39 +21,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-pub mod constants;
-pub mod roundel;
-pub mod ui;
-pub mod world;
+pub const DISK_WORLD_Y: f32 = 0.0;
+pub const DISK_WORLD_RADIUS: f32 = 4.0;
+pub const DISK_WORLD_R2: f32 = DISK_WORLD_RADIUS * DISK_WORLD_RADIUS;
 
-use bevy::asset::embedded_asset;
-use bevy::prelude::*;
+pub const CUBE_WORLD_SIDE_LEN: f32 = 2.25;
 
-#[derive(Debug, Resource, Default)]
-pub struct EntityTable {
-  pub cube: Option<Entity>,
-  pub disk: Option<Entity>,
-  pub ground: Option<Entity>,
-  pub main_menu: Option<Entity>,
-  pub ocean_menu: Option<Entity>,
-  pub roundel_menu: Option<Entity>,
-  pub instructions_menu: Option<Entity>,
-  pub about_menu: Option<Entity>,
-  pub main_anchor: Option<Entity>,
-  pub ocean: Option<Entity>,
-  pub ocean_wire: Option<Entity>,
-  pub ocean_point: Option<Entity>,
-}
+pub const GROUND_WORLD_Y: f32 = -3.0;
+pub const GROUND_WORLD_SIDE_LEN: f32 = 28.0;
 
-pub struct EmbeddedAssetsPlugin;
-impl Plugin for EmbeddedAssetsPlugin {
-  fn build(&self, app: &mut App) {
-    embedded_asset!(app, "media/wbtekbg2b512.jpg");
-    embedded_asset!(app, "media/diamond_sprite.jpg");
-    embedded_asset!(app, "media/menu_main.jpg");
-    embedded_asset!(app, "media/menu_roundel.jpg");
-    embedded_asset!(app, "media/menu_ocean.jpg");
-    embedded_asset!(app, "media/menu_instructions.jpg");
-    embedded_asset!(app, "media/menu_about.jpg");
-  }
-}
+pub const OCEAN_WORLD_Y: f32 = -0.5;
+pub const OCEAN_WORLD_SIDE_LEN: f32 = GROUND_WORLD_SIDE_LEN;
+pub const OCEAN_TO_GROUND: f32 = GROUND_WORLD_Y - OCEAN_WORLD_Y;

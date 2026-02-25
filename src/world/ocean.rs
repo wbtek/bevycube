@@ -21,8 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::constants::*;
 use crate::world::camera::CameraAnchorRes;
-// use crate::world::ground::GroundConfig;
 use crate::EntityTable;
 use bevy::camera::visibility::RenderLayers;
 use bevy::mesh::VertexAttributeValues;
@@ -89,8 +89,6 @@ impl OceanBuffer {
 
   /// Injects a vertical displacement at a specific world coordinate.
   pub fn splash(&mut self, x: f32, z: f32, magnitude: f32, diameter: f32) {
-    // let size = self.size as f32;
-    // let spacing = 20.0 / (size - 1.0);
     let spacing = self.spacing();
     let side_length = self.side_length;
     let r_sq = (diameter / 2.0).powi(2);
@@ -104,30 +102,31 @@ impl OceanBuffer {
         let dist_sq = (vx - x).powi(2) + (vz - z).powi(2);
         if dist_sq < r_sq {
           let falloff = 1.0 - (dist_sq / r_sq).sqrt();
-          // self.current[i] += magnitude * falloff;
-          self.current[i] = (self.current[i] + magnitude * falloff).max(-1.76);
-          // self.next[i] += magnitude * falloff;
-          self.next[i] = (self.next[i] + magnitude * falloff).max(-1.76);
+          self.current[i] = (self.current[i] + magnitude * falloff).max(OCEAN_TO_GROUND - 0.01);
+          self.next[i] = (self.next[i] + magnitude * falloff).max(OCEAN_TO_GROUND - 0.01);
         }
       }
     }
   }
 
+  // relative, +-0
   pub fn get_height(&self, x: f32, z: f32) -> f32 {
     let size = self.size as f32;
+    let side_len = self.side_length;
 
-    let col = ((x + 10.0) / 20.0 * (size - 1.0))
+    let col = ((x + side_len / 2.0) / side_len * (size - 1.0))
       .round()
       .clamp(0.0, size - 1.0) as usize;
-    let row = ((z + 10.0) / 20.0 * (size - 1.0))
+    let row = ((z + side_len / 2.0) / side_len * (size - 1.0))
       .round()
       .clamp(0.0, size - 1.0) as usize;
 
     self.current[row * self.size + col]
   }
 
+  // positive depth to ground
   pub fn get_depth(&self, x: f32, z: f32) -> f32 {
-    self.get_height(x, z) + 2.0 - 0.25
+    self.get_height(x, z) - GROUND_WORLD_Y + OCEAN_WORLD_Y
   }
 }
 
@@ -201,8 +200,8 @@ pub fn spawn_ocean(
   clean(&mut et.ocean_point);
 
   let grid_size = 1 + dimension as usize;
-  let side_length = 20.0;
-  let world_y = -0.25;
+  let side_length = OCEAN_WORLD_SIDE_LEN;
+  let world_y = OCEAN_WORLD_Y;
   commands.insert_resource(OceanBuffer::new(grid_size, side_length, world_y));
 
   let ocean_mesh = Plane3d::default()
@@ -298,7 +297,7 @@ pub fn apply_camera_repulsion(
         .distance_squared(anchor.current.anchor.xz())
         < r_sq
       {
-        water.next[i] = push_depth.max(-1.76);
+        water.next[i] = push_depth.max(OCEAN_TO_GROUND - 0.01);
       }
     }
   }
@@ -327,11 +326,6 @@ pub fn simulate_waves(
     for x in 1..size - 1 {
       let i = z * size + x;
 
-      if water.get_world_pos(x, z).xz().distance_squared(disk_xz) < 16.5 {
-        water.next[i] = -0.5;
-        continue;
-      }
-
       let avg = (water.current[i - size - 1]
         + water.current[i - size]
         + water.current[i - size + 1]
@@ -342,7 +336,14 @@ pub fn simulate_waves(
         + water.current[i + size]
         + water.current[i + size + 1])
         / 9.0;
-      water.next[i] = ((avg * 2.0 - water.next[i]) * 0.98).max(-1.76);
+      // clamp between just below ground and just below disk if under disk
+      let pre_clamp = (avg * 2.0 - water.next[i]) * 0.98;
+      let low_clamp = OCEAN_TO_GROUND - 0.01;
+      let mut high_clamp = f32::MAX;
+      if water.get_world_pos(x, z).xz().distance_squared(disk_xz) < DISK_WORLD_R2 {
+        high_clamp = DISK_WORLD_Y - OCEAN_WORLD_Y - 0.01;
+      }
+      water.next[i] = pre_clamp.clamp(low_clamp, high_clamp);
     }
   }
 }
@@ -350,7 +351,6 @@ pub fn simulate_waves(
 pub fn update_ocean_mesh(
   water: Res<OceanBuffer>,
   et: Res<EntityTable>,
-  // ground_config: Res<GroundConfig>,
   mut meshes: ResMut<Assets<Mesh>>,
   query: Query<&Mesh3d, With<Ocean>>,
 ) {
@@ -368,8 +368,7 @@ pub fn update_ocean_mesh(
       {
         for (i, p) in pos.iter_mut().enumerate() {
           if i < water.current.len() {
-            // p[1] = water.current[i].max(ground_config.world_y);
-            p[1] = water.current[i].max(-1.76);
+            p[1] = water.current[i].max(OCEAN_TO_GROUND - 0.01);
           }
         }
       }

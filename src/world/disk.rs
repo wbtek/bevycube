@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+use crate::constants::*;
 use crate::EntityTable;
 use bevy::prelude::*;
 
@@ -41,7 +42,7 @@ pub fn spawn_rotating_disk(
   roundel_mat: StandardMaterial,
   et: &mut ResMut<EntityTable>,
 ) -> Entity {
-  let mesh = Circle::new(4.0)
+  let mesh = Circle::new(DISK_WORLD_RADIUS)
     .mesh()
     .resolution(128)
     .build()
@@ -52,7 +53,7 @@ pub fn spawn_rotating_disk(
       RotatingDisk,
       Mesh3d(meshes.add(mesh)),
       MeshMaterial3d(materials.add(roundel_mat)),
-      Transform::IDENTITY,
+      Transform::from_xyz(0.0, DISK_WORLD_Y, 0.0),
     ))
     .id();
 

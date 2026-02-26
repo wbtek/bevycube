@@ -179,6 +179,14 @@ pub fn setup(
 
   lights::spawn_lights(&mut commands);
 
+  crate::ui::overlay_ui::spawn_overlay_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
   commands
     .entity(ground_id)
     .observe(cube::handle_jump_request);

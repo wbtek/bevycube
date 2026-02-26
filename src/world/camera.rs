@@ -43,7 +43,7 @@ pub struct CameraAnchor;
 #[derive(Component)]
 pub struct MainCamera;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CameraParams {
   pub anchor: Vec3,
   pub track_near_end_y: f32,
@@ -87,10 +87,11 @@ impl CameraParams {
     // We calculate horizontal X and Z using direction, then scale by the slope's cosine.
     let vertical_scale = self.slope.sin();
     let horizontal_scale = self.slope.cos();
+    let zoom = self.zoom.clamp(0.01, 40.0);
 
-    let x = self.direction.sin() * horizontal_scale * self.zoom;
-    let y = self.track_near_end_y + (vertical_scale * self.zoom);
-    let z = self.direction.cos() * horizontal_scale * self.zoom;
+    let x = self.direction.sin() * horizontal_scale * zoom;
+    let y = self.track_near_end_y + (vertical_scale * zoom);
+    let z = self.direction.cos() * horizontal_scale * zoom;
 
     Vec3::new(x, y, z)
   }
@@ -100,10 +101,11 @@ impl CameraParams {
   }
 
   pub fn get_camera_effect(&self) -> f32 {
-    self.track_near_end_y + self.zoom
+    self.track_near_end_y + self.zoom.clamp(0.01, 40.0)
   }
 }
 
+#[derive(Debug)]
 pub struct CameraMotion {
   pub from: CameraParams,
   pub target: CameraParams,
@@ -111,7 +113,7 @@ pub struct CameraMotion {
   pub peak_zoom: f32,
 }
 
-#[derive(Resource)]
+#[derive(Debug, Resource)]
 pub struct CameraAnchorRes {
   pub current: CameraParams,
   pub in_motion: Option<CameraMotion>,
@@ -132,26 +134,34 @@ impl Default for CameraAnchorRes {
 
 impl CameraAnchorRes {
   fn set_motion(&mut self, from: CameraParams, to: CameraParams) {
-    let mut target = to;
+    let mut f = from;
+    let mut t = to;
 
-    let direction_delta = to.direction - from.direction;
-    let normalized_delta = (direction_delta + PI).rem_euclid(2. * PI) - PI;
-    target.direction = from.direction + normalized_delta;
-    target.zoom = to.zoom.clamp(0.01, 40.0);
-    target.slope = to.slope.clamp(0.0, 1.5);
+    f.direction = (f.direction + PI).rem_euclid(2. * PI) - PI;
+    t.direction = (t.direction + PI).rem_euclid(2. * PI) - PI;
+
+    t.zoom = t.zoom.clamp(0.01, 40.0);
+    t.slope = t.slope.clamp(0.0, 1.5);
 
     let dist = from.anchor.distance(to.anchor);
     self.in_motion = Some(CameraMotion {
-      from: from,
-      target: target,
+      from: f,
+      target: t,
       timer: Timer::from_seconds(1.5, TimerMode::Once),
       peak_zoom: (self.current.zoom.max(to.zoom) + dist).clamp(0.01, 40.0),
     });
   }
 
   pub fn request_menu(&mut self, target: CameraParams) {
-    self.history.push(self.current);
-    self.set_motion(self.current, target);
+    self.current.zoom = self.current.zoom.clamp(0.01, 40.0);
+
+    let mut clamped_target = target;
+    clamped_target.zoom = target.zoom.clamp(0.01, 40.0);
+
+    if self.current != clamped_target {
+      self.history.push(self.current);
+    }
+    self.set_motion(self.current, clamped_target);
   }
 
   pub fn request_back(&mut self) {
@@ -179,6 +189,7 @@ pub fn spawn_camera(
     ))
     .id();
   anchor.camera_id = Some(camera_id);
+  et.main_camera = Some(camera_id);
 
   commands.entity(anchor_id).add_child(camera_id);
 }
@@ -271,12 +282,12 @@ pub fn update_camera_motion(time: Res<Time>, mut res: ResMut<CameraAnchorRes>) {
 
   // 2. Zoom: Bell curve wave effect
   let zoom_t = 1.0 - (2.0 * t - 1.0).powi(2);
-  res.current.zoom = motion
+  res.current.zoom = (motion
     .from
     .zoom
     .lerp(motion.target.zoom, (bounce_t + t) / 2.)
-    + (motion.peak_zoom - motion.from.zoom.max(motion.target.zoom)) * zoom_t;
-  // res.current.zoom = motion.from.zoom.lerp(motion.target.zoom, bounce_t);
+    + (motion.peak_zoom - motion.from.zoom.max(motion.target.zoom)) * zoom_t)
+    .clamp(0.01, 40.0);
 
   // 3. Direction: Linear rotation
   res.current.direction = motion.from.direction.lerp(motion.target.direction, t);

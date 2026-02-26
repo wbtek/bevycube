@@ -26,6 +26,7 @@ pub mod diamonds;
 pub mod instructions_ui;
 pub mod main_ui;
 pub mod ocean_ui;
+pub mod overlay_ui;
 pub mod roundel_ui;
 use crate::world::camera::CameraAnchorRes;
 use bevy::prelude::*;
@@ -178,6 +179,7 @@ pub fn spawn_menu_plane(
       MeshMaterial3d(materials.add(StandardMaterial {
         base_color_texture: Some(asset_server.load(image_path)),
         alpha_mode: AlphaMode::Add,
+        unlit: true,
         reflectance: 0.0,
         ..default()
       })),
@@ -189,6 +191,7 @@ pub fn spawn_menu_plane(
   let diamond_mat = materials.add(StandardMaterial {
     base_color_texture: Some(asset_server.load("embedded://bevycube/media/diamond_sprite.jpg")),
     alpha_mode: AlphaMode::Add,
+    unlit: true,
     reflectance: 0.0,
     ..default()
   });

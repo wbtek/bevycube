@@ -39,7 +39,9 @@ pub struct EntityTable {
   pub roundel_menu: Option<Entity>,
   pub instructions_menu: Option<Entity>,
   pub about_menu: Option<Entity>,
+  pub overlay_menu: Option<Entity>,
   pub main_anchor: Option<Entity>,
+  pub main_camera: Option<Entity>,
   pub ocean: Option<Entity>,
   pub ocean_wire: Option<Entity>,
   pub ocean_point: Option<Entity>,
@@ -55,5 +57,6 @@ impl Plugin for EmbeddedAssetsPlugin {
     embedded_asset!(app, "media/menu_ocean.jpg");
     embedded_asset!(app, "media/menu_instructions.jpg");
     embedded_asset!(app, "media/menu_about.jpg");
+    embedded_asset!(app, "media/menu_overlay.jpg");
   }
 }

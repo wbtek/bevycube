@@ -30,6 +30,7 @@ pub mod overlay_ui;
 pub mod roundel_ui;
 pub mod show_ui;
 use crate::world::camera::CameraAnchorRes;
+use bevy::light::NotShadowCaster;
 use bevy::prelude::*;
 
 #[derive(Resource, Debug, Clone, Copy, Reflect)]
@@ -184,6 +185,7 @@ pub fn spawn_menu_plane(
         reflectance: 0.0,
         ..default()
       })),
+      NotShadowCaster,
       Transform::from_translation(location),
     ))
     .id();
@@ -219,6 +221,7 @@ pub fn spawn_menu_plane(
             crate::ui::diamonds::DiamondCategory(item.action),
             Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0 / 16.0, 5.0 / 16.0))),
             MeshMaterial3d(diamond_mat.clone()),
+            NotShadowCaster,
             // Initial position will be snapped by sync_diamonds
             Transform::from_xyz(0.0, 0.01, 0.0),
           ))

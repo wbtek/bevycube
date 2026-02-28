@@ -22,7 +22,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     w: 235,
     h: 38,
     diamond: No,
-    action: MenuAction::Execute(roundel_ui::request_view),
+    action: MenuAction::Execute(instructions_ui::request_view),
   },
   MenuItem {
     x: 80,
@@ -38,7 +38,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     w: 167,
     h: 29,
     diamond: No,
-    action: MenuAction::Execute(instructions_ui::request_view),
+    action: MenuAction::Execute(roundel_ui::request_view),
   },
   MenuItem {
     x: 80,

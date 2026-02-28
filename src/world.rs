@@ -137,6 +137,8 @@ pub fn setup(
     &mut et,
   );
 
+  let ocean_fake_id = ocean::spawn_ocean_fake(&mut commands, &mut meshes, &mut materials, &mut et);
+
   crate::ui::main_ui::spawn_main_menu(
     &mut commands,
     &mut meshes,
@@ -191,6 +193,9 @@ pub fn setup(
 
   commands
     .entity(ground_id)
+    .observe(cube::handle_jump_request);
+  commands
+    .entity(ocean_fake_id)
     .observe(cube::handle_jump_request);
   commands.entity(disk_id).observe(cube::handle_jump_request);
 }

@@ -157,7 +157,7 @@ pub fn handle_jump_request(
   mut camera_res: ResMut<CameraAnchorRes>,
   water: Res<OceanBuffer>,
 ) {
-  let entities = [et.ocean, et.ocean_wire, et.ocean_point];
+  let entities = [et.ocean, et.ocean_wire, et.ocean_point, et.ocean_fake];
   for e in entities.iter() {
     if e.is_none() {
       return;

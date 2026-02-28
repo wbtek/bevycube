@@ -182,6 +182,42 @@ pub fn generate_points_from_mesh(source_mesh: &Mesh) -> Mesh {
   point_mesh
 }
 
+pub fn spawn_ocean_fake(
+  commands: &mut Commands,
+  meshes: &mut ResMut<Assets<Mesh>>,
+  materials: &mut ResMut<Assets<StandardMaterial>>,
+  et: &mut ResMut<EntityTable>,
+) -> Entity {
+  let side_length = OCEAN_WORLD_SIDE_LEN;
+  let world_y = OCEAN_WORLD_Y;
+
+  let ocean_fake_mesh = Plane3d::default()
+    .mesh()
+    .size(side_length, side_length)
+    .subdivisions(0)
+    .build();
+
+  let ocean_fake_id = commands
+    .spawn((
+      Ocean,
+      Mesh3d(meshes.add(ocean_fake_mesh)),
+      MeshMaterial3d(materials.add(StandardMaterial {
+        base_color: Color::srgba(0.0, 0.0, 0.0, 0.0),
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+      })),
+      bevy::picking::Pickable {
+        is_hoverable: true,
+        should_block_lower: false,
+      },
+      Transform::from_xyz(0.0, world_y, 0.0),
+    ))
+    .id();
+  et.ocean_fake = Some(ocean_fake_id);
+
+  ocean_fake_id
+}
+
 pub fn spawn_ocean(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,

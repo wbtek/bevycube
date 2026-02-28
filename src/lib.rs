@@ -45,6 +45,7 @@ pub struct EntityTable {
   pub ocean: Option<Entity>,
   pub ocean_wire: Option<Entity>,
   pub ocean_point: Option<Entity>,
+  pub ocean_fake: Option<Entity>,
 }
 
 pub struct EmbeddedAssetsPlugin;

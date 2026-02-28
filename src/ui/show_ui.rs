@@ -2,7 +2,6 @@ use crate::world::camera::*;
 use crate::EntityTable;
 use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
-// use crate::ui::main_ui::*;
 // use log::info;
 //
 const THRESHOLD: f32 = 7.0;
@@ -30,13 +29,29 @@ pub fn show_menus_system(
     (crate::ui::about_ui::MENU_LOCATION, et.about_menu),
   ];
 
+  // if true it receives clicks
+  let mut hover_fake_ocean = true;
+
   for p in pairs.iter() {
     let hide = c.get_camera_effect_xyz(p.0) > THRESHOLD;
-    let layer = if hide { 1 } else { 0 };
+    let layer = if hide {
+      1
+    } else {
+      hover_fake_ocean = false;
+      0
+    };
     if let Some(id) = p.1 {
       commands
         .entity(id)
         .insert_recursive::<Children>(RenderLayers::layer(layer));
     }
+  }
+  if let Some(fake_ocean_id) = et.ocean_fake {
+    commands
+      .entity(fake_ocean_id)
+      .insert(bevy::picking::Pickable {
+        is_hoverable: hover_fake_ocean,
+        should_block_lower: false,
+      });
   }
 }

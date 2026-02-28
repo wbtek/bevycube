@@ -1,5 +1,5 @@
 use crate::ui::Need::*;
-use crate::ui::{self, about_ui, instructions_ui, ocean_ui, roundel_ui, MenuAction, MenuItem};
+use crate::ui::{self, about_ui, instruct_ui, ocean_ui, roundel_ui, MenuAction, MenuItem};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::prelude::*;
@@ -22,7 +22,7 @@ const HITBOX_TABLE: &[MenuItem] = &[
     w: 235,
     h: 38,
     diamond: No,
-    action: MenuAction::Execute(instructions_ui::request_view),
+    action: MenuAction::Execute(instruct_ui::request_view),
   },
   MenuItem {
     x: 80,

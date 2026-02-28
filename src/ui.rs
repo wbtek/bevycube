@@ -23,11 +23,12 @@
 
 pub mod about_ui;
 pub mod diamonds;
-pub mod instructions_ui;
+pub mod instruct_ui;
 pub mod main_ui;
 pub mod ocean_ui;
 pub mod overlay_ui;
 pub mod roundel_ui;
+pub mod show_ui;
 use crate::world::camera::CameraAnchorRes;
 use bevy::prelude::*;
 
@@ -172,7 +173,7 @@ pub fn spawn_menu_plane(
   location: Vec3,
   hitbox_table: &'static [MenuItem],
 ) -> Entity {
-  let id = commands
+  let menu_id = commands
     .spawn((
       Name::new(label.to_string()),
       Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
@@ -223,12 +224,12 @@ pub fn spawn_menu_plane(
           ))
           .id();
 
-        commands.entity(id).add_child(diamond_id);
+        commands.entity(menu_id).add_child(diamond_id);
         categories_spawned.push(cat_id);
       }
     }
   }
 
-  attach_menu_interaction(commands, id, hitbox_table);
-  id
+  attach_menu_interaction(commands, menu_id, hitbox_table);
+  menu_id
 }

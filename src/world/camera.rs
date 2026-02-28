@@ -103,6 +103,10 @@ impl CameraParams {
   pub fn get_camera_effect(&self) -> f32 {
     self.track_near_end_y + self.zoom.clamp(0.01, 40.0)
   }
+
+  pub fn get_camera_effect_xyz(&self, location: Vec3) -> f32 {
+    self.track_near_end_y + self.zoom.clamp(0.01, 40.0) + self.get_anchor_xyz().distance(location)
+  }
 }
 
 #[derive(Debug)]

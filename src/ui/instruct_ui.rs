@@ -25,7 +25,7 @@ pub fn request_view(camera_res: &mut CameraAnchorRes) {
   });
 }
 
-pub fn spawn_instructions_menu(
+pub fn spawn_instruct_menu(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
   materials: &mut ResMut<Assets<StandardMaterial>>,
@@ -43,7 +43,7 @@ pub fn spawn_instructions_menu(
     HITBOX_TABLE,
   );
 
-  et.instructions_menu = Some(menu_id);
+  et.instruct_menu = Some(menu_id);
 
   if let Some(ground) = et.ground {
     commands.entity(ground).add_child(menu_id);

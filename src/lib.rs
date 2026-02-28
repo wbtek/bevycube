@@ -37,7 +37,7 @@ pub struct EntityTable {
   pub main_menu: Option<Entity>,
   pub ocean_menu: Option<Entity>,
   pub roundel_menu: Option<Entity>,
-  pub instructions_menu: Option<Entity>,
+  pub instruct_menu: Option<Entity>,
   pub about_menu: Option<Entity>,
   pub overlay_menu: Option<Entity>,
   pub main_anchor: Option<Entity>,

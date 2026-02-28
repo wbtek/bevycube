@@ -24,6 +24,7 @@
 use crate::ui::diamonds;
 use crate::ui::ocean_ui;
 use crate::ui::roundel_ui;
+use crate::ui::show_ui;
 use crate::ui::GlobalSettings;
 use crate::{roundel, world::camera::CameraAnchorRes, EntityTable};
 use bevy::prelude::*;
@@ -60,6 +61,7 @@ impl Plugin for WorldPlugin {
         ocean::swap_and_copy,
         ocean::update_ocean_mesh,
         cube::apply_buoyancy,
+        show_ui::show_menus_system,
       )
         .chain(),
     );
@@ -159,7 +161,7 @@ pub fn setup(
     &mut et,
   );
 
-  crate::ui::instructions_ui::spawn_instructions_menu(
+  crate::ui::instruct_ui::spawn_instruct_menu(
     &mut commands,
     &mut meshes,
     &mut materials,

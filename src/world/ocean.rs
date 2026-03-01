@@ -203,14 +203,14 @@ pub fn spawn_ocean_fake(
       Mesh3d(meshes.add(ocean_fake_mesh)),
       MeshMaterial3d(materials.add(StandardMaterial {
         base_color: Color::srgba(0.0, 0.0, 0.0, 0.0),
-        alpha_mode: AlphaMode::Blend,
+        alpha_mode: AlphaMode::Mask(0.5),
         ..default()
       })),
       bevy::picking::Pickable {
         is_hoverable: true,
         should_block_lower: false,
       },
-      Transform::from_xyz(0.0, world_y, 0.0),
+      Transform::from_xyz(0.0, world_y - 0.01, 0.0),
     ))
     .id();
   et.ocean_fake = Some(ocean_fake_id);

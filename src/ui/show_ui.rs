@@ -29,15 +29,16 @@ pub fn show_menus_system(
     (crate::ui::about_ui::MENU_LOCATION, et.about_menu),
   ];
 
-  // if true it receives clicks
-  let mut hover_fake_ocean = true;
+  // visible on layer 0
+  let mut fake_ocean_layer = 0;
 
   for p in pairs.iter() {
     let hide = c.get_camera_effect_xyz(p.0) > THRESHOLD;
     let layer = if hide {
       1
     } else {
-      hover_fake_ocean = false;
+      // not seen when layer 1, no clicks
+      fake_ocean_layer = 1;
       0
     };
     if let Some(id) = p.1 {
@@ -49,9 +50,6 @@ pub fn show_menus_system(
   if let Some(fake_ocean_id) = et.ocean_fake {
     commands
       .entity(fake_ocean_id)
-      .insert(bevy::picking::Pickable {
-        is_hoverable: hover_fake_ocean,
-        should_block_lower: false,
-      });
+      .insert_recursive::<Children>(RenderLayers::layer(fake_ocean_layer));
   }
 }

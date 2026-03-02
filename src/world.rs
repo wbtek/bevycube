@@ -21,11 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-use crate::ui::diamonds;
-use crate::ui::ocean_ui;
-use crate::ui::roundel_ui;
-use crate::ui::show_ui;
-use crate::ui::GlobalSettings;
 use crate::{roundel, world::camera::CameraAnchorRes, EntityTable};
 use bevy::prelude::*;
 // use log::info;
@@ -51,7 +46,6 @@ impl Plugin for WorldPlugin {
   fn build(&self, app: &mut App) {
     app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
     app.insert_resource(camera::CameraAnchorRes::default());
-    app.insert_resource(GlobalSettings::default());
     app.add_systems(
       FixedUpdate,
       (
@@ -61,22 +55,18 @@ impl Plugin for WorldPlugin {
         ocean::swap_and_copy,
         ocean::update_ocean_mesh,
         cube::apply_buoyancy,
-        show_ui::show_menus_system,
       )
         .chain(),
     );
     app
       .register_type::<cube::RotatingCube>()
-      .add_systems(Startup, setup)
+      .add_systems(Startup, setup_world)
       .add_systems(
         Update,
         (
-          ocean_ui::sync_ocean_menu_settings,
-          roundel_ui::sync_roundel_menu_settings,
-          diamonds::sync_diamonds,
           cube::rotate_cube,
           disk::rotate_disk,
-          cube::update_jump,
+          cube::update_jump.after(crate::ui::ocean_ui::sync_ocean_menu_settings),
           camera::sync_camera_transforms,
         )
           .chain(),
@@ -84,7 +74,7 @@ impl Plugin for WorldPlugin {
   }
 }
 
-pub fn setup(
+pub fn setup_world(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
@@ -139,57 +129,9 @@ pub fn setup(
 
   let ocean_fake_id = ocean::spawn_ocean_fake(&mut commands, &mut meshes, &mut materials, &mut et);
 
-  crate::ui::main_ui::spawn_main_menu(
-    &mut commands,
-    &mut meshes,
-    &mut materials,
-    &asset_server,
-    &mut et,
-  );
-
-  crate::ui::ocean_ui::spawn_ocean_menu(
-    &mut commands,
-    &mut meshes,
-    &mut materials,
-    &asset_server,
-    &mut et,
-  );
-
-  crate::ui::roundel_ui::spawn_roundel_menu(
-    &mut commands,
-    &mut meshes,
-    &mut materials,
-    &asset_server,
-    &mut et,
-  );
-
-  crate::ui::instruct_ui::spawn_instruct_menu(
-    &mut commands,
-    &mut meshes,
-    &mut materials,
-    &asset_server,
-    &mut et,
-  );
-
-  crate::ui::about_ui::spawn_about_menu(
-    &mut commands,
-    &mut meshes,
-    &mut materials,
-    &asset_server,
-    &mut et,
-  );
-
   camera::spawn_camera(&mut commands, &mut et, &mut camera_anchor);
 
   lights::spawn_lights(&mut commands);
-
-  crate::ui::overlay_ui::spawn_overlay_menu(
-    &mut commands,
-    &mut meshes,
-    &mut materials,
-    &asset_server,
-    &mut et,
-  );
 
   commands
     .entity(ground_id)

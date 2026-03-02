@@ -6,6 +6,7 @@ use crate::world::ocean;
 use crate::EntityTable;
 use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
+// use log::info;
 
 pub const MENU_LOCATION: Vec3 = Vec3::new(5.9, 0.01, -5.9);
 pub const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_ocean.jpg";
@@ -139,7 +140,6 @@ pub fn sync_ocean_menu_settings(
   settings: Res<GlobalSettings>,
   mut local: Local<Option<GlobalSettings>>,
   mut et: ResMut<EntityTable>,
-  mut query: Query<Option<&mut RenderLayers>>,
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
@@ -159,24 +159,18 @@ pub fn sync_ocean_menu_settings(
     );
     *l = GlobalSettings::INVALID;
     l.mesh_dimension = settings.mesh_dimension;
-    return;
   }
 
   if settings.mesh_mode != l.mesh_mode {
     let entities = [et.ocean, et.ocean_wire, et.ocean_point];
     for (i, opt_ent) in entities.iter().enumerate() {
       if let Some(entity) = *opt_ent {
-        if let Ok(opt_layers) = query.get_mut(entity) {
-          let is_active_mode = i == settings.mesh_mode as usize;
-          if let Some(mut layers) = opt_layers {
-            *layers = if is_active_mode {
-              l.mesh_mode = settings.mesh_mode;
-              RenderLayers::layer(0) // Seen by Camera
-            } else {
-              RenderLayers::layer(1) // Hidden from Camera
-            };
-          }
-        }
+        let is_active = i == settings.mesh_mode as usize;
+        let layer = if is_active { 0 } else { 1 };
+        commands
+          .entity(entity)
+          .insert_recursive::<Children>(RenderLayers::layer(layer));
+        l.mesh_mode = settings.mesh_mode;
       }
     }
   }

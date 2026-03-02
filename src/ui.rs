@@ -30,8 +30,27 @@ pub mod overlay_ui;
 pub mod roundel_ui;
 pub mod show_ui;
 use crate::world::camera::CameraAnchorRes;
+use crate::EntityTable;
 use bevy::light::NotShadowCaster;
 use bevy::prelude::*;
+
+pub struct UiPlugin;
+
+impl Plugin for UiPlugin {
+  fn build(&self, app: &mut App) {
+    app.insert_resource(GlobalSettings::default());
+    app.add_systems(Startup, setup_ui).add_systems(
+      Update,
+      (
+        ocean_ui::sync_ocean_menu_settings,
+        roundel_ui::sync_roundel_menu_settings,
+        diamonds::sync_diamonds,
+        show_ui::show_menus_system,
+      )
+        .chain(),
+    );
+  }
+}
 
 #[derive(Resource, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
@@ -91,6 +110,62 @@ pub struct MenuItem {
   pub h: u32,
   pub diamond: Need,
   pub action: MenuAction,
+}
+
+pub fn setup_ui(
+  mut commands: Commands,
+  mut meshes: ResMut<Assets<Mesh>>,
+  mut materials: ResMut<Assets<StandardMaterial>>,
+  asset_server: Res<AssetServer>,
+  mut et: ResMut<EntityTable>,
+) {
+  crate::ui::main_ui::spawn_main_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
+  crate::ui::ocean_ui::spawn_ocean_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
+  crate::ui::roundel_ui::spawn_roundel_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
+  crate::ui::instruct_ui::spawn_instruct_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
+  crate::ui::about_ui::spawn_about_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
+
+  crate::ui::overlay_ui::spawn_overlay_menu(
+    &mut commands,
+    &mut meshes,
+    &mut materials,
+    &asset_server,
+    &mut et,
+  );
 }
 
 /// Maps local plane coordinate (-2.5..2.5) to pixel space (0..512)
@@ -222,7 +297,6 @@ pub fn spawn_menu_plane(
             Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0 / 16.0, 5.0 / 16.0))),
             MeshMaterial3d(diamond_mat.clone()),
             NotShadowCaster,
-            // Initial position will be snapped by sync_diamonds
             Transform::from_xyz(0.0, 0.01, 0.0),
           ))
           .id();

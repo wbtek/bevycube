@@ -1,3 +1,7 @@
+//! # Disk System
+//!
+/// Rotating disk with roundel texture.
+/// Handles drag interaction for rotation speed.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -20,21 +24,23 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 use crate::constants::*;
 use crate::EntityTable;
 use bevy::prelude::*;
 
+/// Disk rotation speed resource
 #[derive(Debug, Resource)]
 pub struct DiskParms {
   pub rotation_speed: f32,
 }
 
+/// Component marking the rotating disk
 #[derive(Debug, Component, Default, Reflect)]
 #[reflect(Component)]
 #[require(Transform, Visibility)]
 pub struct RotatingDisk;
 
+/// Spawn rotating disk with roundel texture
 pub fn spawn_rotating_disk(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -69,6 +75,7 @@ pub fn spawn_rotating_disk(
   disk_id
 }
 
+/// Update disk rotation based on current rotation speed
 pub fn rotate_disk(
   et: Res<EntityTable>,
   mut query: Query<&mut Transform>,

@@ -1,3 +1,7 @@
+//! # Ocean Physics
+//!
+//! Grid-based wave simulation with camera repulsion and buoyancy.
+/// Supports Solid, Wire, and Points render modes.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -20,7 +24,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 use crate::constants::*;
 use crate::world::camera::CameraAnchorRes;
 use crate::EntityTable;
@@ -28,6 +31,7 @@ use bevy::camera::visibility::RenderLayers;
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 
+/// Buffer storing ocean height data for simulation
 #[derive(Resource)]
 pub struct OceanBuffer {
   pub current: Vec<f32>,
@@ -38,6 +42,7 @@ pub struct OceanBuffer {
 }
 
 impl OceanBuffer {
+  /// Initialize buffer with given grid size
   pub fn new(size: usize, side_length: f32, world_y: f32) -> Self {
     let count = size * size;
     Self {
@@ -49,10 +54,12 @@ impl OceanBuffer {
     }
   }
 
+  /// Get spacing between grid cells
   pub fn spacing(&self) -> f32 {
     self.side_length / (self.size - 1) as f32
   }
 
+  /// Get world position for grid indices
   pub fn get_world_pos(&self, x_idx: usize, z_idx: usize) -> Vec3 {
     let offset = self.side_length / 2.;
     let x = (x_idx as f32 * self.spacing()) - offset;
@@ -60,10 +67,12 @@ impl OceanBuffer {
     Vec3::new(x, 0., z)
   }
 
+  /// Swap current and next buffers
   pub fn swap(&mut self) {
     std::mem::swap(&mut self.current, &mut self.next);
   }
 
+  /// Clamp edge heights to zero
   pub fn zap_edges(&mut self) {
     let left_column = 0;
     let right_column = self.size - 1;
@@ -87,7 +96,7 @@ impl OceanBuffer {
     self.current[bottom_row * self.size + right_column] = 0.;
   }
 
-  /// Injects a vertical displacement at a specific world coordinate.
+  /// Inject vertical displacement (splash)
   pub fn splash(&mut self, x: f32, z: f32, magnitude: f32, diameter: f32) {
     let spacing = self.spacing();
     let side_length = self.side_length;
@@ -109,7 +118,7 @@ impl OceanBuffer {
     }
   }
 
-  // relative, +-0
+  /// Return wave +-0 height relative to OCEAN_WORLD_Y
   pub fn get_height(&self, x: f32, z: f32) -> f32 {
     let size = self.size as f32;
     let side_len = self.side_length;
@@ -124,12 +133,13 @@ impl OceanBuffer {
     self.current[row * self.size + col]
   }
 
-  // positive depth to ground
+  /// How deep the water is here atm. Positive.
   pub fn get_depth(&self, x: f32, z: f32) -> f32 {
     self.get_height(x, z) - GROUND_WORLD_Y + OCEAN_WORLD_Y
   }
 }
 
+/// Component for ocean mesh entities
 #[derive(Debug, Component)]
 #[require(Transform, Visibility)]
 pub struct Ocean;
@@ -138,6 +148,7 @@ use bevy::asset::RenderAssetUsages;
 use bevy::mesh::Indices;
 use bevy::mesh::PrimitiveTopology;
 
+/// Generate wireframe mesh from triangle mesh
 pub fn generate_wireframe_from_mesh(source_mesh: &Mesh) -> Mesh {
   // create new LineList mesh
   let mut wireframe_mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default());
@@ -163,6 +174,7 @@ pub fn generate_wireframe_from_mesh(source_mesh: &Mesh) -> Mesh {
   wireframe_mesh
 }
 
+/// Generate point mesh from triangle mesh
 pub fn generate_points_from_mesh(source_mesh: &Mesh) -> Mesh {
   let mut point_mesh = Mesh::new(
     PrimitiveTopology::PointList, // Tell the GPU: "One vertex = One point"
@@ -182,6 +194,7 @@ pub fn generate_points_from_mesh(source_mesh: &Mesh) -> Mesh {
   point_mesh
 }
 
+/// Spawn invisible ocean entity just for clicks.
 pub fn spawn_ocean_fake(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -218,6 +231,7 @@ pub fn spawn_ocean_fake(
   ocean_fake_id
 }
 
+/// Spawn ocean meshes based on mesh mode and dimension
 pub fn spawn_ocean(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -303,6 +317,7 @@ pub fn spawn_ocean(
   ocean_id
 }
 
+/// Apply camera repulsion force to ocean surface
 pub fn apply_camera_repulsion(
   mut water: ResMut<OceanBuffer>,
   anchor: ResMut<CameraAnchorRes>,
@@ -339,6 +354,7 @@ pub fn apply_camera_repulsion(
   }
 }
 
+/// Simulate wave propagation by averaging neighbors
 pub fn simulate_waves(
   mut water: ResMut<OceanBuffer>,
   et: Res<EntityTable>,
@@ -384,6 +400,7 @@ pub fn simulate_waves(
   }
 }
 
+/// Update ocean mesh vertex heights from buffer
 pub fn update_ocean_mesh(
   water: Res<OceanBuffer>,
   et: Res<EntityTable>,

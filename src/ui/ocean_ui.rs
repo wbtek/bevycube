@@ -1,3 +1,28 @@
+//! # Ocean Settings UI
+//!
+/// Ocean mesh settings (mode, dimension).
+// MIT License
+//
+// Copyright (c) 2026 - WBTek: Greg Slocum
+// Division of WhiteBear Family, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 use crate::ui::GlobalSettings;
 use crate::ui::Need::*;
 use crate::ui::{self, MenuAction, MenuItem};
@@ -102,7 +127,7 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
   },
 ];
 
-/// Used by other modules to navigate to the Ocean menu
+/// Request view of ocean settings menu from elsewhere
 pub fn request_view(camera_res: &mut CameraAnchorRes) {
   camera_res.request_menu(CameraParams {
     anchor: MENU_LOCATION,
@@ -111,6 +136,7 @@ pub fn request_view(camera_res: &mut CameraAnchorRes) {
   });
 }
 
+/// Spawn ocean settings menu plane
 pub fn spawn_ocean_menu(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -136,6 +162,7 @@ pub fn spawn_ocean_menu(
   }
 }
 
+/// Sync ocean settings with GlobalSettings
 pub fn sync_ocean_menu_settings(
   settings: Res<GlobalSettings>,
   mut local: Local<Option<GlobalSettings>>,

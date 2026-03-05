@@ -46,6 +46,9 @@ release:
 serve:
 	trunk serve
 
+doc:
+	cargo doc --target wasm32-unknown-unknown --open
+
 local:
 	cp -a dist/. $(LOCAL_SERVER_PATH)/
 	

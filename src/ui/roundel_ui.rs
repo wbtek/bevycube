@@ -1,3 +1,28 @@
+//! # Roundel Settings UI
+//!
+/// Texture settings (anisotropy, mipmaps, resolution).
+// MIT License
+//
+// Copyright (c) 2026 - WBTek: Greg Slocum
+// Division of WhiteBear Family, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 use crate::roundel::StitchedRoundel;
 use crate::ui::{self, GlobalSettings, MenuAction, MenuItem, Need::*};
 use crate::world::camera::{CameraAnchorRes, CameraParams};
@@ -99,7 +124,7 @@ pub const HITBOX_TABLE: &[MenuItem] = &[
   },
 ];
 
-/// Used by main_ui or other modules to navigate to this menu
+/// Request view of roundel settings menu from elsewhere
 pub fn request_view(camera_res: &mut CameraAnchorRes) {
   camera_res.request_menu(CameraParams {
     anchor: MENU_LOCATION,
@@ -108,6 +133,7 @@ pub fn request_view(camera_res: &mut CameraAnchorRes) {
   });
 }
 
+/// Spawn roundel settings menu plane
 pub fn spawn_roundel_menu(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -133,6 +159,7 @@ pub fn spawn_roundel_menu(
   }
 }
 
+/// Sync roundel settings with GlobalSettings
 pub fn sync_roundel_menu_settings(
   settings: Res<GlobalSettings>,
   mut local: Local<Option<GlobalSettings>>,
@@ -140,52 +167,48 @@ pub fn sync_roundel_menu_settings(
   mut images: ResMut<Assets<Image>>,
   mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-  if !settings.is_changed() {
-    return;
+  if local.is_none() {
+    *local = Some(GlobalSettings::INVALID);
   }
+  let l = local.as_mut().unwrap();
 
-  let first = local.is_none();
-  let l = local.get_or_insert_default();
+  if let Some(ref stitched_res) = stitched {
+    let handle = &stitched_res.handle;
+    if let Some(img) = images.get_mut(handle) {
+      let mut img_samp = match img.sampler.clone() {
+        ImageSampler::Descriptor(d) => d,
+        _ => ImageSamplerDescriptor::default(),
+      };
 
-  let Some(ref stitched_res) = stitched else {
-    return;
-  };
-  let handle = &stitched_res.handle;
-  let Some(img) = images.get_mut(handle) else {
-    return;
-  };
-  let mut isamp = match img.sampler.clone() {
-    ImageSampler::Descriptor(d) => d,
-    _ => ImageSamplerDescriptor::default(),
-  };
+      if settings.anisotropy != l.anisotropy {
+        img_samp.anisotropy_clamp = settings.anisotropy as u16;
+        l.anisotropy = settings.anisotropy;
+      }
 
-  if first || settings.anisotropy != l.anisotropy {
-    isamp.anisotropy_clamp = settings.anisotropy as u16;
-    l.anisotropy = settings.anisotropy;
-  }
+      if settings.mipmaps != l.mipmaps {
+        img_samp.mipmap_filter = match settings.mipmaps {
+          1 => ImageFilterMode::Linear,
+          _ => ImageFilterMode::Nearest,
+        };
+        l.mipmaps = settings.mipmaps;
+      }
 
-  if first || settings.mipmaps != l.mipmaps {
-    isamp.mipmap_filter = match settings.mipmaps {
-      1 => ImageFilterMode::Linear,
-      _ => ImageFilterMode::Nearest,
-    };
-    l.mipmaps = settings.mipmaps;
-  }
+      if settings.asset_resolution != l.asset_resolution {
+        img_samp.lod_min_clamp = settings.asset_resolution as f32;
+        l.asset_resolution = settings.asset_resolution;
+      }
 
-  if first || settings.asset_resolution != l.asset_resolution {
-    isamp.lod_min_clamp = settings.asset_resolution as f32;
-    l.asset_resolution = settings.asset_resolution;
-  }
-
-  img.sampler = ImageSampler::Descriptor(isamp);
-  for (_, mat) in materials.iter_mut() {
-    if mat
-      .base_color_texture
-      .as_ref()
-      .map(|h| h.id() == handle.id())
-      .unwrap_or(false)
-    {
-      mat.base_color_texture = Some(handle.clone());
+      img.sampler = ImageSampler::Descriptor(img_samp);
+      for (_, mat) in materials.iter_mut() {
+        if mat
+          .base_color_texture
+          .as_ref()
+          .map(|h| h.id() == handle.id())
+          .unwrap_or(false)
+        {
+          mat.base_color_texture = Some(handle.clone());
+        }
+      }
     }
   }
 }

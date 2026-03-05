@@ -1,3 +1,7 @@
+//! # Roundel Plugin
+//!
+/// Runtime mipmap stitching for roundel textures.
+/// Combines 5 texture levels into one for performance.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -20,13 +24,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 use bevy::asset::embedded_asset;
 use bevy::image::*;
 use bevy::math::Affine2;
 use bevy::prelude::*;
 use bevy::render::render_resource::*;
 
+/// Plugin for mipmap stitching
 pub struct RoundelPlugin;
 
 impl Plugin for RoundelPlugin {
@@ -41,18 +45,20 @@ impl Plugin for RoundelPlugin {
   }
 }
 
+/// Resource for stitched roundel texture
 #[derive(Resource)]
 pub struct StitchedRoundel {
   pub handle: Handle<Image>,
 }
 
+/// Resource for tracking mipmap loading
 #[derive(Debug, Resource)]
 pub struct RoundelMipmapLoading {
   pub handles: [Handle<Image>; 5],
   pub target_handle: Handle<Image>,
 }
 
-// Returns the standard material configuration used for the Roundel faces.
+/// Get roundel material configuration
 pub fn get_roundel_material(handle: Handle<Image>) -> StandardMaterial {
   StandardMaterial {
     base_color_texture: Some(handle),
@@ -65,6 +71,7 @@ pub fn get_roundel_material(handle: Handle<Image>) -> StandardMaterial {
   }
 }
 
+/// Stitch mipmap levels together at runtime
 fn stitch_roundel_system(
   mut commands: Commands,
   loading: Option<Res<RoundelMipmapLoading>>,

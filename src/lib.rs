@@ -1,3 +1,29 @@
+//! # BevyCube
+//!
+//! A 3D real-time rendered graphics demo written in Rust,
+//! compiles to WASM for web browsers. Uses Bevy 0.18 game engine.
+//!
+//! ## Architecture Overview
+//!
+//! - **World Plugin**: 3D objects (cube, disk, ocean, ground)
+//! - **Camera Plugin**: Dolly camera with anchor system and history stack
+//! - **UI Plugin**: Data-driven menu system with hitbox tables
+//! - **Roundel Plugin**: Runtime mipmap stitching for textures
+//!
+//! ## Navigation
+//!
+//! Menus are navigated using a stack-based camera system.
+//! Clicking a menu pushes the current camera state; "Back" pops it.
+//!
+//! ## Ocean Physics
+//!
+//! Grid-based wave simulation with camera repulsion and buoyancy.
+//! Supports Solid, Wire, and Points render modes.
+//!
+//! ## License
+//!
+//! MIT License - See [Cargo.toml](Cargo.toml) for full license text.
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -21,14 +47,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+/// Core data structures and plugins for the application
 pub mod constants;
+/// Runtime mipmap stitching for roundel textures
 pub mod roundel;
+/// Data-driven menu system and UI handling
 pub mod ui;
+/// 3D world objects, physics, and rendering
 pub mod world;
 
 use bevy::asset::embedded_asset;
 use bevy::prelude::*;
 
+/// Tracks entity references for quick access across systems
+/// Used to avoid querying for entities repeatedly
 #[derive(Debug, Resource, Default)]
 pub struct EntityTable {
   pub cube: Option<Entity>,
@@ -48,6 +80,8 @@ pub struct EntityTable {
   pub ocean_fake: Option<Entity>,
 }
 
+/// Embeds media assets into the binary at compile time
+/// Optimizes WASM builds by removing external file dependencies
 pub struct EmbeddedAssetsPlugin;
 impl Plugin for EmbeddedAssetsPlugin {
   fn build(&self, app: &mut App) {

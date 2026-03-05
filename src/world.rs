@@ -1,3 +1,8 @@
+//! # World Plugin
+//!
+//! Manages the 3D scene, core entities (cube, disk, ground, ocean),
+//! and physics systems. Coordinates sub-modules (camera, ocean, cube).
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -32,17 +37,11 @@ pub mod ground;
 pub mod lights;
 pub mod ocean;
 
-#[derive(Debug, Component)]
-#[require(Transform, Visibility)]
-pub struct SafetyDisk;
-
-#[derive(Debug, Component)]
-#[require(Transform, Visibility)]
-pub struct SafetyDiskHidden;
-
+/// Plugin for initializing the 3D world and scheduling systems
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
+  /// Configures fixed timestep, inserts resources, and schedules world systems
   fn build(&self, app: &mut App) {
     app.insert_resource(Time::<Fixed>::from_seconds(1.0 / 10.0));
     app.insert_resource(camera::CameraAnchorRes::default());
@@ -74,6 +73,7 @@ impl Plugin for WorldPlugin {
   }
 }
 
+/// Initializes all world entities (cube, disk, ground, lights, camera)
 pub fn setup_world(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,

@@ -1,6 +1,30 @@
+//! # Overlay UI (Main Menu button)
+//!
+/// Click-through overlay to navigate to main menu.
+// MIT License
+//
+// Copyright (c) 2026 - WBTek: Greg Slocum
+// Division of WhiteBear Family, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 use crate::ui::Need::*;
 use crate::ui::{self, main_ui, MenuAction, MenuItem};
-use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::prelude::*;
 
@@ -16,14 +40,7 @@ const HITBOX_TABLE: &[MenuItem] = &[MenuItem {
   action: MenuAction::Execute(main_ui::request_view),
 }];
 
-pub fn request_view(camera_res: &mut CameraAnchorRes) {
-  camera_res.request_menu(CameraParams {
-    anchor: MENU_LOCATION,
-    zoom: 0.0,
-    ..default()
-  });
-}
-
+/// Spawn overlay menu plane
 pub fn spawn_overlay_menu(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,

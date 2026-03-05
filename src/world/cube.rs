@@ -1,3 +1,7 @@
+//! # Cube System
+//!
+/// Rotating cube with animations (Slide, Spin, Jump, Flip).
+/// Handles buoyancy, drag interaction, and jump targeting.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -20,7 +24,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 use crate::constants::*;
 use crate::world::camera::*;
 use crate::{world::ocean::OceanBuffer, EntityTable};
@@ -28,16 +31,19 @@ use bevy::ecs::relationship::Relationship;
 use bevy::prelude::EaseFunction::{BounceInOut, ElasticInOut};
 use bevy::prelude::*;
 
+/// Cube rotation speed resource
 #[derive(Debug, Resource)]
 pub struct CubeParms {
   pub rotation_speed: f32,
 }
 
+/// Component marking the rotating cube
 #[derive(Debug, Component, Default, Reflect)]
 #[reflect(Component)]
 #[require(Transform, Visibility)]
 pub struct RotatingCube;
 
+/// Animation type for cube movement
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]
 pub enum AnimationType {
   Jump,
@@ -46,6 +52,7 @@ pub enum AnimationType {
   Flip,
 }
 
+/// Data for active jump animation
 #[derive(Debug, Component)]
 pub struct JumpData {
   pub world_start: Vec3,
@@ -57,6 +64,7 @@ pub struct JumpData {
   pub animation: Option<AnimationType>,
 }
 
+/// Spawn rotating cube with roundel faces
 pub fn spawn_rotating_cube(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -148,6 +156,7 @@ pub fn spawn_rotating_cube(
   cube_id
 }
 
+/// Handle jump request from common click event
 pub fn handle_jump_request(
   mut click: On<Pointer<Click>>,
   mut commands: Commands,
@@ -229,6 +238,7 @@ pub fn handle_jump_request(
   });
 }
 
+/// Update cube rotation based on current rotation speed
 pub fn rotate_cube(
   et: Res<EntityTable>,
   mut query: Query<&mut Transform>,
@@ -242,6 +252,7 @@ pub fn rotate_cube(
   }
 }
 
+/// Update jump animation per frame
 pub fn update_jump(
   mut commands: Commands,
   time: Res<Time>,
@@ -336,6 +347,7 @@ pub fn update_jump(
   }
 }
 
+/// Apply buoyancy based on ocean height
 pub fn apply_buoyancy(
   et: Res<EntityTable>,
   water: Res<OceanBuffer>,

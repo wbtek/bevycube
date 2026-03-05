@@ -1,3 +1,8 @@
+//! # Camera System
+//!
+//! Dolly camera with anchor-based navigation and history stack.
+//! Supports mouse wheel zoom, pinch zoom (mobile), orbit, and pan.
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -26,6 +31,7 @@ use bevy::prelude::EaseFunction::*;
 use bevy::prelude::*;
 use std::f32::consts::PI;
 
+/// Plugin for initializing and updating camera systems
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -37,18 +43,27 @@ impl Plugin for CameraPlugin {
   }
 }
 
+/// Component marking the camera anchor entity
 #[derive(Component)]
 #[require(Transform, Visibility)]
 pub struct CameraAnchor;
+
+/// Component marking the main 3D camera
 #[derive(Component)]
 pub struct MainCamera;
 
+/// Configuration for camera position and orientation
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CameraParams {
+  /// Anchor position in world space
   pub anchor: Vec3,
+  /// y distance from anchor to ground
   pub track_near_end_y: f32,
+  /// Camera direction (0.0 = facing north)
   pub direction: f32,
+  /// Track slope (0.0 = flat, 1.5 = almost vertical)
   pub slope: f32,
+  /// Camera distance from anchor end of track
   pub zoom: f32,
 }
 
@@ -65,6 +80,7 @@ impl Default for CameraParams {
 }
 
 impl CameraParams {
+  /// Update pan position based on delta
   pub fn update_pan(&mut self, delta_x: f32, delta_y: f32) {
     let (sin, cos) = self.direction.sin_cos();
     let rotated_x = delta_x * cos + delta_y * sin;
@@ -72,11 +88,13 @@ impl CameraParams {
     self.anchor += Vec3::new(rotated_x, 0.0, rotated_z);
   }
 
+  /// Update orbit direction and slope
   pub fn update_orbit(&mut self, delta_x: f32, delta_y: f32) {
     self.slope = (self.slope + delta_y).clamp(0.0, 1.5);
     self.direction = (self.direction + delta_x).rem_euclid(PI * 2.);
   }
 
+  /// Update zoom level
   pub fn update_zoom(&mut self, delta: f32) {
     self.zoom = (self.zoom - delta).clamp(0.01, 40.0);
   }
@@ -109,6 +127,7 @@ impl CameraParams {
   }
 }
 
+/// Active camera motion state
 #[derive(Debug)]
 pub struct CameraMotion {
   pub from: CameraParams,
@@ -117,6 +136,7 @@ pub struct CameraMotion {
   pub peak_zoom: f32,
 }
 
+/// Resource tracking camera anchor and navigation history
 #[derive(Debug, Resource)]
 pub struct CameraAnchorRes {
   pub current: CameraParams,
@@ -156,6 +176,7 @@ impl CameraAnchorRes {
     });
   }
 
+  /// Push current state and request menu navigation
   pub fn request_menu(&mut self, target: CameraParams) {
     self.current.zoom = self.current.zoom.clamp(0.01, 40.0);
 
@@ -168,12 +189,14 @@ impl CameraAnchorRes {
     self.set_motion(self.current, clamped_target);
   }
 
+  /// Pop from history stack and return to previous view
   pub fn request_back(&mut self) {
     let target = self.history.pop().unwrap_or_else(CameraParams::default);
     self.set_motion(self.current, target);
   }
 }
 
+/// Spawns camera anchor and main camera entities
 pub fn spawn_camera(
   commands: &mut Commands,
   et: &mut ResMut<EntityTable>,
@@ -242,6 +265,7 @@ pub fn update_mobile_zoom(
   }
 }
 
+/// Synchronizes anchor and camera transforms each frame
 pub fn sync_camera_transforms(
   res: Res<CameraAnchorRes>,
   et: Res<EntityTable>,

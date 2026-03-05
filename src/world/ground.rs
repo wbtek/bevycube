@@ -1,3 +1,7 @@
+//! # Ground System
+//!
+/// Static ground plane with ocean floor texture.
+/// Handles camera pan and orbit on drag.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -20,16 +24,17 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 use crate::constants::*;
 use crate::world::camera;
 use crate::EntityTable;
 use bevy::prelude::*;
 
+/// Component marking the ground plane
 #[derive(Debug, Component)]
 #[require(Transform, Visibility)]
 pub struct Ground;
 
+/// Spawn ground plane with texture
 pub fn spawn_ground(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,

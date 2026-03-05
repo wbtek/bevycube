@@ -1,3 +1,14 @@
+//! # UI System
+//!
+//! Data-driven menu system using hitbox tables.
+//! Handles navigation, settings, and WASM URL opening.
+//!
+//! ## Architecture
+//!
+//! - **GlobalSettings**: Central resource for rendering options.
+//! - **MenuItem**: Defines hitboxes (0-512px) and actions.
+//! - **attach_menu_interaction**: Converts 3D world hits to 2D pixel space.
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -34,6 +45,7 @@ use crate::EntityTable;
 use bevy::light::NotShadowCaster;
 use bevy::prelude::*;
 
+/// Plugin for initializing UI resources and systems
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
@@ -52,14 +64,20 @@ impl Plugin for UiPlugin {
   }
 }
 
+/// Global rendering and settings resource
 #[derive(Resource, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
 pub struct GlobalSettings {
-  pub anisotropy: u32,       // 1, 2, 4, 8, 16
-  pub mipmaps: u32,          // 0: Off, 1: On
+  /// Anisotropy level (1-16)
+  pub anisotropy: u32, // 1, 2, 4, 8, 16
+  /// Mipmap filter state
+  pub mipmaps: u32, // 0: Off, 1: On
+  /// Asset resolution preset
   pub asset_resolution: u32, // 0: High, 1: Med, 2: Low
-  pub mesh_mode: u32,        // 0: Solid, 1: Wire, 2: Points
-  pub mesh_dimension: u32,   // 40, 80, 160, etc
+  /// Ocean mesh render mode
+  pub mesh_mode: u32, // 0: Solid, 1: Wire, 2: Points
+  /// How fine the mesh is
+  pub mesh_dimension: u32, // 40, 80, 160, etc
 }
 
 impl Default for GlobalSettings {
@@ -87,13 +105,21 @@ impl GlobalSettings {
 /// Shared actions for all data-driven menus
 #[derive(Debug, Clone, Copy)]
 pub enum MenuAction {
+  /// Execute a custom function
   Execute(fn(&mut CameraAnchorRes)),
+  /// Navigate back to previous camera position
   Back,
+  /// Set anisotropy level
   SetAnisotropy(u32),
+  /// Enable/disable mipmaps
   SetMipmaps(u32),
+  /// Set asset resolution
   SetResolution(u32),
+  /// Set ocean mesh mode
   SetMeshMode(u32),
+  /// Set ocean mesh dimension
   SetMeshDimension(u32),
+  /// Open a URL in a new tab (WASM only)
   OpenUrl(&'static str),
 }
 
@@ -112,6 +138,7 @@ pub struct MenuItem {
   pub action: MenuAction,
 }
 
+/// Spawns all menu planes and initializes UI
 pub fn setup_ui(
   mut commands: Commands,
   mut meshes: ResMut<Assets<Mesh>>,
@@ -239,6 +266,7 @@ pub fn attach_menu_interaction(
   );
 }
 
+/// Spawns a textured plane with diamond indicators
 pub fn spawn_menu_plane(
   commands: &mut Commands,
   meshes: &mut ResMut<Assets<Mesh>>,
@@ -249,6 +277,7 @@ pub fn spawn_menu_plane(
   location: Vec3,
   hitbox_table: &'static [MenuItem],
 ) -> Entity {
+  // Spawns the menu plane and optional diamond sprites
   let menu_id = commands
     .spawn((
       Name::new(label.to_string()),

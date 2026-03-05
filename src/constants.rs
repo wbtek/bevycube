@@ -1,3 +1,7 @@
+//! # World Constants
+//!
+/// Defines world coordinates and dimensions for all objects.
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum

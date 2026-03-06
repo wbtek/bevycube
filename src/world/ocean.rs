@@ -1,7 +1,8 @@
 //! # Ocean Physics
 //!
 //! Grid-based wave simulation with camera repulsion and buoyancy.
-/// Supports Solid, Wire, and Points render modes.
+//! Supports Solid, Wire, and Points render modes.
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -24,6 +25,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 use crate::constants::*;
 use crate::world::camera::CameraAnchorRes;
 use crate::EntityTable;
@@ -239,6 +241,7 @@ pub fn spawn_ocean(
   et: &mut ResMut<EntityTable>,
   dimension: u32,
 ) -> Entity {
+  // despawn and invalidate existing oceans
   let mut clean = |id: &mut Option<Entity>| {
     if let Some(e) = id.take() {
       commands.entity(e).despawn();
@@ -249,6 +252,7 @@ pub fn spawn_ocean(
   clean(&mut et.ocean_wire);
   clean(&mut et.ocean_point);
 
+  // make the triangle (solide) wave mesh
   let grid_size = 1 + dimension as usize;
   let side_length = OCEAN_WORLD_SIDE_LEN;
   let world_y = OCEAN_WORLD_Y;
@@ -260,9 +264,11 @@ pub fn spawn_ocean(
     .subdivisions((grid_size - 2) as u32)
     .build();
 
+  // make wire and point meshes from the triangle mesh
   let wire_mesh = generate_wireframe_from_mesh(&ocean_mesh);
   let point_mesh = generate_points_from_mesh(&ocean_mesh);
 
+  // spawn the solid ocean on hidden layer
   let ocean_id = commands
     .spawn((
       Ocean,
@@ -284,6 +290,7 @@ pub fn spawn_ocean(
     .id();
   et.ocean = Some(ocean_id);
 
+  // spawn the wireframe ocean on hidden layer
   let ocean_wire_id = commands
     .spawn((
       Ocean,
@@ -299,6 +306,7 @@ pub fn spawn_ocean(
     .id();
   et.ocean_wire = Some(ocean_wire_id);
 
+  // spawn the point cloud ocean on hidden layer
   let ocean_point_id = commands
     .spawn((
       Ocean,
@@ -377,17 +385,11 @@ pub fn simulate_waves(
   for z in 1..size - 1 {
     for x in 1..size - 1 {
       let i = z * size + x;
-
-      let avg = (water.current[i - size - 1]
-        + water.current[i - size]
-        + water.current[i - size + 1]
+      let avg = (water.current[i - size]
         + water.current[i - 1]
-        + water.current[i]
         + water.current[i + 1]
-        + water.current[i + size - 1]
-        + water.current[i + size]
-        + water.current[i + size + 1])
-        / 9.0;
+        + water.current[i + size])
+        / 4.0;
       // clamp between just below ground and just below disk if under disk
       let pre_clamp = (avg * 2.0 - water.next[i]) * 0.98;
       let low_clamp = OCEAN_TO_GROUND - 0.01;
@@ -429,6 +431,7 @@ pub fn update_ocean_mesh(
   }
 }
 
+/// Make sure edges of ocean remain zero
 pub fn clamp_edges(mut water: ResMut<OceanBuffer>, et: Res<EntityTable>) {
   let entities = [et.ocean, et.ocean_wire, et.ocean_point];
   for e in entities.iter() {
@@ -440,6 +443,7 @@ pub fn clamp_edges(mut water: ResMut<OceanBuffer>, et: Res<EntityTable>) {
   water.zap_edges();
 }
 
+/// Swap buffers (finished)
 pub fn swap_and_copy(mut water: ResMut<OceanBuffer>, et: Res<EntityTable>) {
   let entities = [et.ocean, et.ocean_wire, et.ocean_point];
   for e in entities.iter() {

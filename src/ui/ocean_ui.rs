@@ -1,6 +1,6 @@
 //! # Ocean Settings UI
 //!
-/// Ocean mesh settings (mode, dimension).
+//! Ocean mesh settings (mode, dimension).
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -33,9 +33,11 @@ use bevy::camera::visibility::RenderLayers;
 use bevy::prelude::*;
 // use log::info;
 
+/// Location of this menu, differentiate by crate
 pub const MENU_LOCATION: Vec3 = Vec3::new(5.9, 0.01, -5.9);
-pub const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_ocean.jpg";
+const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_ocean.jpg";
 
+/// HITBOX_TABLE for menu interactions
 pub const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
     x: 354,

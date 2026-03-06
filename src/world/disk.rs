@@ -1,7 +1,8 @@
 //! # Disk System
 //!
-/// Rotating disk with roundel texture.
-/// Handles drag interaction for rotation speed.
+//! Rotating disk with roundel texture.
+//! Handles drag interaction for rotation speed.
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -24,6 +25,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 use crate::constants::*;
 use crate::EntityTable;
 use bevy::prelude::*;

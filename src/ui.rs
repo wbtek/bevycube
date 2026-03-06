@@ -123,6 +123,7 @@ pub enum MenuAction {
   OpenUrl(&'static str),
 }
 
+/// Vocabulary for Need
 pub enum Need {
   No,
   Yes,
@@ -200,6 +201,7 @@ pub fn to_pixel(local_coord: f32) -> f32 {
   (local_coord * 512.0 / 5.0) + 256.0
 }
 
+/// Maps pixel space (0..512) to local plane coordinate (-2.5..2.5)
 pub fn to_local(pixel: f32) -> f32 {
   (pixel - 256.0) / 512.0 * 5.0
 }

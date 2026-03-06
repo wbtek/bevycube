@@ -1,6 +1,6 @@
 //! # Diamond Indicators
 //!
-/// Syncs diamond sprite position with selected menu option.
+//! Syncs diamond sprite position with selected menu option.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum

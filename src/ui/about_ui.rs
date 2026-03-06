@@ -1,6 +1,6 @@
 //! # About UI
 //!
-/// About page with links to GitHub and homepage.
+//! About page with links to GitHub and homepage.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -29,10 +29,12 @@ use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::prelude::*;
 
+/// Location of this menu, differentiate by crate
 pub const MENU_LOCATION: Vec3 = Vec3::new(-5.9, 0.01, 0.0);
 const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_about.jpg";
 
-const HITBOX_TABLE: &[MenuItem] = &[
+/// HITBOX_TABLE for menu interactions
+pub const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
     x: 354,
     y: 57,

@@ -1,6 +1,6 @@
 //! # Overlay UI (Main Menu button)
 //!
-/// Click-through overlay to navigate to main menu.
+//! Click-through overlay to reach main menu.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -28,10 +28,12 @@ use crate::ui::{self, main_ui, MenuAction, MenuItem};
 use crate::EntityTable;
 use bevy::prelude::*;
 
+/// Location placeholder for this "menu", differentiate by crate
 pub const MENU_LOCATION: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_overlay.jpg";
 
-const HITBOX_TABLE: &[MenuItem] = &[MenuItem {
+/// HITBOX_TABLE for menu interactions
+pub const HITBOX_TABLE: &[MenuItem] = &[MenuItem {
   x: 0,
   y: 0,
   w: 511,

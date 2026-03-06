@@ -1,6 +1,6 @@
 //! # Roundel Settings UI
 //!
-/// Texture settings (anisotropy, mipmaps, resolution).
+//! Texture settings (anisotropy, mipmaps, resolution).
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -30,9 +30,11 @@ use crate::EntityTable;
 use bevy::image::{ImageFilterMode, ImageSampler, ImageSamplerDescriptor};
 use bevy::prelude::*;
 
+/// Location of this menu, differentiate by crate
 pub const MENU_LOCATION: Vec3 = Vec3::new(5.9, 0.01, 0.0);
-pub const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_roundel.jpg";
+const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_roundel.jpg";
 
+/// HITBOX_TABLE for menu interactions
 pub const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
     x: 354,

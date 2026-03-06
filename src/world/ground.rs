@@ -1,7 +1,8 @@
 //! # Ground System
 //!
-/// Static ground plane with ocean floor texture.
-/// Handles camera pan and orbit on drag.
+//! Static ground plane with ocean floor texture.
+//! Handles camera pan and orbit on drag.
+
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -24,6 +25,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 use crate::constants::*;
 use crate::world::camera;
 use crate::EntityTable;

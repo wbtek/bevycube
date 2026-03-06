@@ -1,6 +1,6 @@
 //! # Main Menu UI
 //!
-/// Main menu with navigation to other menus.
+//! Main menu to reach other menus.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum
@@ -29,11 +29,12 @@ use crate::world::camera::{CameraAnchorRes, CameraParams};
 use crate::EntityTable;
 use bevy::prelude::*;
 
+/// Location of this menu, differentiate by crate
 pub const MENU_LOCATION: Vec3 = Vec3::new(0.0, 0.01, -5.9);
 const IMAGE_PATH: &'static str = "embedded://bevycube/media/menu_main.jpg";
 
-/// HITBOX_TABLE for main menu interactions
-const HITBOX_TABLE: &[MenuItem] = &[
+/// HITBOX_TABLE for menu interactions
+pub const HITBOX_TABLE: &[MenuItem] = &[
   MenuItem {
     x: 354,
     y: 57,

@@ -127,12 +127,14 @@ pub fn setup_world(
     &mut et,
   );
 
+  // Just for clicks
   let ocean_fake_id = ocean::spawn_ocean_fake(&mut commands, &mut meshes, &mut materials, &mut et);
 
   camera::spawn_camera(&mut commands, &mut et, &mut camera_anchor);
 
   lights::spawn_lights(&mut commands);
 
+  // Observers controlling cube
   commands
     .entity(ground_id)
     .observe(cube::handle_jump_request);

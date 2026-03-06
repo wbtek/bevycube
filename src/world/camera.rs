@@ -99,7 +99,7 @@ impl CameraParams {
     self.zoom = (self.zoom - delta).clamp(0.01, 40.0);
   }
 
-  // Calculates where the camera should be relative to the anchor
+  /// Calculates where the camera should be relative to the anchor
   pub fn get_camera_offset(&self) -> Vec3 {
     // direction 0 is North (towards -Z).
     // We calculate horizontal X and Z using direction, then scale by the slope's cosine.
@@ -114,14 +114,17 @@ impl CameraParams {
     Vec3::new(x, y, z)
   }
 
+  /// Return where anchor is
   pub fn get_anchor_xyz(&self) -> Vec3 {
     self.anchor
   }
 
+  /// Camera effect for camera (used for water repulsion)
   pub fn get_camera_effect(&self) -> f32 {
     self.track_near_end_y + self.zoom.clamp(0.01, 40.0)
   }
 
+  /// Camera effect for arbitrary location (used for menu activation)
   pub fn get_camera_effect_xyz(&self, location: Vec3) -> f32 {
     self.track_near_end_y + self.zoom.clamp(0.01, 40.0) + self.get_anchor_xyz().distance(location)
   }
@@ -221,6 +224,7 @@ pub fn spawn_camera(
   commands.entity(anchor_id).add_child(camera_id);
 }
 
+/// Desktop Zoom (MouseWheel)
 pub fn update_camera_zoom(
   mut mouse_wheel: MessageReader<bevy::input::mouse::MouseWheel>,
   mut res: ResMut<CameraAnchorRes>,
@@ -231,6 +235,7 @@ pub fn update_camera_zoom(
   }
 }
 
+/// Mobile Zoom (pinch) and Orbit (2 fingers same direction)
 pub fn update_mobile_zoom(
   touches: Res<bevy::input::touch::Touches>,
   mut res: ResMut<CameraAnchorRes>,
@@ -240,7 +245,7 @@ pub fn update_mobile_zoom(
     return;
   }
 
-  // --- 1. ZOOM LOGIC ---
+  // Zoom
   let curr_dist = active[0].position().distance(active[1].position());
   let prev_dist = active[0]
     .previous_position()
@@ -251,12 +256,11 @@ pub fn update_mobile_zoom(
     res.current.update_zoom(pinch_delta * 0.05); //
   }
 
-  // --- 2. ORBIT LOGIC (The "Right Drag" substitute) ---
-  // Calculate the average delta of both fingers
+  // Orbit
+  // "Right Drag" if both fingers go similar direction (Dot prod positive)
   let delta_0 = active[0].position() - active[0].previous_position();
   let delta_1 = active[1].position() - active[1].previous_position();
 
-  // If both fingers are moving in a similar direction (Dot product is positive)
   if delta_0.dot(delta_1) > 0.0 {
     let avg_delta = (delta_0 + delta_1) / 2.0;
     res
@@ -265,69 +269,62 @@ pub fn update_mobile_zoom(
   }
 }
 
-/// Synchronizes anchor and camera transforms each frame
+/// Move anchor and camera to already calculated position each frame
 pub fn sync_camera_transforms(
   res: Res<CameraAnchorRes>,
   et: Res<EntityTable>,
   mut query: Query<&mut Transform>,
 ) {
-  let Some(anchor_id) = et.main_anchor else {
-    return;
-  };
-  let Some(camera_id) = res.camera_id else {
-    return;
-  };
-
-  if let Ok(mut transform) = query.get_mut(anchor_id) {
-    transform.translation = res.current.anchor;
-  }
-
-  if let Ok(mut transform) = query.get_mut(camera_id) {
-    let offset = res.current.get_camera_offset();
-    transform.translation = offset;
-    transform.look_at(Vec3::ZERO, Vec3::Y);
+  if let (Some(anchor_id), Some(camera_id)) = (et.main_anchor, res.camera_id) {
+    if let Ok(mut transform) = query.get_mut(anchor_id) {
+      transform.translation = res.current.anchor;
+    }
+    if let Ok(mut transform) = query.get_mut(camera_id) {
+      let offset = res.current.get_camera_offset();
+      transform.translation = offset;
+      transform.look_at(Vec3::ZERO, Vec3::Y);
+    }
   }
 }
 
+/// Calculate camera / anchor animation if in progress
 pub fn update_camera_motion(time: Res<Time>, mut res: ResMut<CameraAnchorRes>) {
-  // Move the motion out of the resource to avoid double-borrowing 'res'
-  let Some(mut motion) = res.in_motion.take() else {
-    return;
-  };
+  // If in motion, take it as protection
+  if let Some(mut motion) = res.in_motion.take() {
+    motion.timer.tick(time.delta());
+    let t = motion.timer.fraction().clamp(0., 1.);
 
-  motion.timer.tick(time.delta());
-  let t = motion.timer.fraction().clamp(0., 1.);
+    // Easing curves
+    let elastic_t = ElasticIn.sample_unchecked(t);
+    let bounce_t = BounceOut.sample_unchecked(t);
 
-  // Easing curves
-  let elastic_t = ElasticIn.sample_unchecked(t);
-  let bounce_t = BounceOut.sample_unchecked(t);
+    // Anchor: blended Elastic and Bounce slide
+    res.current.anchor = motion.from.anchor.lerp(
+      motion.target.anchor,
+      (elastic_t + bounce_t + bounce_t + t + t) / 5.,
+    );
 
-  // 1. Anchor: Elastic slide
-  res.current.anchor = motion.from.anchor.lerp(
-    motion.target.anchor,
-    (elastic_t + bounce_t + bounce_t + t + t) / 5.,
-  );
+    // Zoom: Bell curve wave effect with some Bounce
+    let zoom_t = 1.0 - (2.0 * t - 1.0).powi(2);
+    res.current.zoom = (motion
+      .from
+      .zoom
+      .lerp(motion.target.zoom, (bounce_t + t) / 2.)
+      + (motion.peak_zoom - motion.from.zoom.max(motion.target.zoom)) * zoom_t)
+      .clamp(0.01, 40.0);
 
-  // 2. Zoom: Bell curve wave effect
-  let zoom_t = 1.0 - (2.0 * t - 1.0).powi(2);
-  res.current.zoom = (motion
-    .from
-    .zoom
-    .lerp(motion.target.zoom, (bounce_t + t) / 2.)
-    + (motion.peak_zoom - motion.from.zoom.max(motion.target.zoom)) * zoom_t)
-    .clamp(0.01, 40.0);
+    // Direction: Linear rotation
+    res.current.direction = motion.from.direction.lerp(motion.target.direction, t);
 
-  // 3. Direction: Linear rotation
-  res.current.direction = motion.from.direction.lerp(motion.target.direction, t);
+    // Slope: Linear
+    res.current.slope = motion.from.slope.lerp(motion.target.slope, t);
 
-  // 4. Slope: Handled by your get_camera_offset, but clamped here
-  res.current.slope = motion.from.slope.lerp(motion.target.slope, t);
-
-  if motion.timer.just_finished() {
-    res.current = motion.target;
-    res.in_motion = None;
-  } else {
-    // Put it back to continue the motion next frame
-    res.in_motion = Some(motion);
+    if motion.timer.just_finished() {
+      res.current = motion.target;
+      res.in_motion = None;
+    } else {
+      // Put it back to continue the motion next frame
+      res.in_motion = Some(motion);
+    }
   }
 }

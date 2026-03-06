@@ -1,6 +1,7 @@
 //! # UI Visibility System
 //!
-/// Controls which menus are visible based on camera position.
+//! Controls which menus are visible based on camera / anchor position.
+//! Hides fake ocean when it would interfere with menus.
 // MIT License
 //
 // Copyright (c) 2026 - WBTek: Greg Slocum

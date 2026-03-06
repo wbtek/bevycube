@@ -17,12 +17,12 @@
 //!
 //! ## Ocean Physics
 //!
-//! Grid-based wave simulation with camera repulsion and buoyancy.
-//! Supports Solid, Wire, and Points render modes.
+//! Grid-based wave simulation with camera water repulsion and buoyancy.
+//! Displays Solid, Wire, and Points render modes.
 //!
 //! ## License
 //!
-//! MIT License - See [Cargo.toml](Cargo.toml) for full license text.
+//! MIT License - See [LICENSE.txt](../../../../LICENSE.txt) for full license text.
 
 // MIT License
 //
@@ -59,8 +59,8 @@ pub mod world;
 use bevy::asset::embedded_asset;
 use bevy::prelude::*;
 
-/// Tracks entity references for quick access across systems
-/// Used to avoid querying for entities repeatedly
+/// Keeps entities for easy access across systems
+/// Reduces code, avoids continuous querying for entities
 #[derive(Debug, Resource, Default)]
 pub struct EntityTable {
   pub cube: Option<Entity>,
@@ -81,7 +81,7 @@ pub struct EntityTable {
 }
 
 /// Embeds media assets into the binary at compile time
-/// Optimizes WASM builds by removing external file dependencies
+/// Removes external file dependencies
 pub struct EmbeddedAssetsPlugin;
 impl Plugin for EmbeddedAssetsPlugin {
   fn build(&self, app: &mut App) {

@@ -1,6 +1,10 @@
 //! # World Constants
 //!
-/// Defines world coordinates and dimensions for all objects.
+//! Defines world coordinates and dimensions for important objects.
+//!
+//! Top to bottom: Disk, Ocean, Ground.
+//!
+//! Ocean and Ground are same size but don't have to be.
 
 // MIT License
 //
@@ -25,15 +29,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+/// The Y-coordinate of the rotating disk in world space.
 pub const DISK_WORLD_Y: f32 = 0.0;
+/// The radius of the rotating disk in world units.
 pub const DISK_WORLD_RADIUS: f32 = 4.0;
+/// The squared radius of the disk, used for distance checks.
 pub const DISK_WORLD_R2: f32 = DISK_WORLD_RADIUS * DISK_WORLD_RADIUS;
 
+/// The side length of the rotating cube in world units.
 pub const CUBE_WORLD_SIDE_LEN: f32 = 2.25;
 
+/// The Y-coordinate of the ground plane in world space.
 pub const GROUND_WORLD_Y: f32 = -3.0;
+/// The side length of the ground plane in world units.
 pub const GROUND_WORLD_SIDE_LEN: f32 = 28.0;
 
+/// The Y-coordinate of the ocean surface in world space before waves.
 pub const OCEAN_WORLD_Y: f32 = -0.5;
+/// The side length of the ocean grid, matching the ground.
 pub const OCEAN_WORLD_SIDE_LEN: f32 = GROUND_WORLD_SIDE_LEN;
+/// The vertical distance between the ocean surface and the ground plane.
 pub const OCEAN_TO_GROUND: f32 = GROUND_WORLD_Y - OCEAN_WORLD_Y;

@@ -28,6 +28,8 @@ SERVER_USER := root
 SERVER_HOST := feet
 SERVER_PATH := /www/slocum.net/wbtek/bevycube
 LOCAL_SERVER_PATH := /var/www/localhost/htdocs/greg/bevycube
+RUSTDOC_IN := target/wasm32-unknown-unknown/doc
+GHIO_SITE_OUT := ../wbtek.github.io/$(APP_NAME)
 
 all: build local
 
@@ -47,16 +49,22 @@ serve:
 	trunk serve
 
 doc:
-	cargo doc --target wasm32-unknown-unknown --open
+	cargo doc --target wasm32-unknown-unknown --no-deps
+
+ghio: doc release
+	rm -r $(GHIO_SITE_OUT)/doc
+	rmdir $(GHIO_SITE_OUT)/assets
+	rm $(GHIO_SITE_OUT)/*
+	mv $(RUSTDOC_IN) $(GHIO_SITE_OUT)/
+	cp -a dist/. $(GHIO_SITE_OUT)/
 
 local:
 	cp -a dist/. $(LOCAL_SERVER_PATH)/
 	
 # This builds, then scp's everything in dist/ to the server.
-deploy: release
+nearserve: release
 	@echo "--- Uploading to $(SERVER_HOST) ---"
 	scp -r dist/* $(SERVER_USER)@$(SERVER_HOST):$(SERVER_PATH)/
-	@echo "--- Done! Check https://wbtek.net/bevy-cube/ ---"
 
 # set perms on server, hopefully only needs doing once
 perms:

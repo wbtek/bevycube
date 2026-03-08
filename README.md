@@ -1,0 +1,1 @@
+3D Rust/Bevy to WASM demo. Make big waves, rendered different ways. Amazing that so much can be done entirely in a web browser! Animated camera on a track. Bouncing. Spinning stuff sticks to spinning stuff and knows where it is going to be. Physical menus get animated to. Links from within a “game” open new tabs. Did we mention the cool waves?
